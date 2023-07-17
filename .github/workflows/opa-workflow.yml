@@ -3,7 +3,7 @@ name: OPA Checks
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   opa-checks:
@@ -40,8 +40,9 @@ jobs:
 
       # Run OPA tests to evaluate the Dockerfile against the policies
       - name: Run OPA checks
-        run: cat Dockerfile | opa test --format pretty -v --stdin-input opa-test.rego
+        run: opa test --format pretty -v --data Dockerfile=../Dockerfile opa-test.rego
 
       # Cleanup temporary files
       - name: Cleanup
         run: rm Dockerfile opa-test.rego
+
