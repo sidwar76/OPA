@@ -27,4 +27,5 @@ jobs:
       # Run OPA to evaluate the Dockerfile against the policies
       - name: Run OPA checks
         run: |
-          opa eval --data .github/workflows/opa-policies.rego --format pretty --input Dockerfile
+          echo 'Dockerfile' | opa eval --data opa-policies.rego --stdin
+
