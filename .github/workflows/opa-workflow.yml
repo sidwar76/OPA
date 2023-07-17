@@ -15,11 +15,7 @@ jobs:
 
       # Build the Docker image (replace "your_image_name" with the actual image name)
       - name: Build Docker image
-        run: docker build -t test .
-
-      # Save the Dockerfile to a temporary file (replace "Dockerfile" if needed)
-#       - name: Save Dockerfile
-#         run: echo "${{ steps.docker_build.outputs.DOCKERFILE }}" > Dockerfile
+        run: docker build -t your_image_name .
 
       # Install OPA (replace with your OPA version if needed)
       - name: Install OPA
@@ -31,8 +27,4 @@ jobs:
       # Run OPA to evaluate the Dockerfile against the policies
       - name: Run OPA checks
         run: |
-          opa eval --data .github/workflows/opa-policies.rego --input Dockerfile
-
-      # Cleanup temporary Dockerfile
-      - name: Cleanup
-        run: rm Dockerfile
+          opa eval --data .github/workflows/opa-policies.rego --format pretty --input Dockerfile
