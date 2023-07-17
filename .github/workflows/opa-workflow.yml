@@ -1,0 +1,38 @@
+name: OPA Checks
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  opa-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Build the Docker image (replace "your_image_name" with the actual image name)
+      - name: Build Docker image
+        run: docker build -t test .
+
+      # Save the Dockerfile to a temporary file (replace "Dockerfile" if needed)
+#       - name: Save Dockerfile
+#         run: echo "${{ steps.docker_build.outputs.DOCKERFILE }}" > Dockerfile
+
+      # Install OPA (replace with your OPA version if needed)
+      - name: Install OPA
+        run: |
+          curl -LO "https://github.com/open-policy-agent/opa/releases/download/v0.29.4/opa_linux_amd64"
+          chmod +x opa_linux_amd64
+          sudo mv opa_linux_amd64 /usr/local/bin/opa
+
+      # Run OPA to evaluate the Dockerfile against the policies
+      - name: Run OPA checks
+        run: |
+          opa eval --data .github/workflows/opa-policies.rego --input Dockerfile
+
+      # Cleanup temporary Dockerfile
+      - name: Cleanup
+        run: rm Dockerfile
