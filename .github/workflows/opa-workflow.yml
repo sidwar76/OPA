@@ -27,16 +27,18 @@ jobs:
       # Run OPA tests to evaluate the Dockerfile against the policies
       - name: Run OPA checks
         run: |
-          echo 'package docker.security
+          cat <<EOF > opa-test.rego
+          package docker.security
 
           import data.docker
           import input
 
           main = result {
               # ... (your OPA policies)
-          }' > opa-test.rego
+          }
+          EOF
 
-          opa test --data opa-test.rego --input Dockerfile
+          cat Dockerfile | opa test --format pretty -v
 
       # Cleanup temporary files
       - name: Cleanup
