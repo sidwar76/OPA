@@ -13,10 +13,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Build the Docker image (replace "your_image_name" with the actual image name)
-      - name: Build Docker image
-        run: docker build -t your_image_name .
-
       # Install OPA (replace with your OPA version if needed)
       - name: Install OPA
         run: |
@@ -27,5 +23,7 @@ jobs:
       # Run OPA to evaluate the Dockerfile against the policies
       - name: Run OPA checks
         run: |
-          echo 'Dockerfile' | opa eval --data opa-policies.rego --stdin
+          opa eval --data .github/workflows/opa-policies.rego --format pretty --input-file Dockerfile
+
+
 
