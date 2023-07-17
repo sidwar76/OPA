@@ -14,4 +14,4 @@ EXPOSE 80
 
 # Set environment variables with sensitive information
 ENV API_KEY=your_api_key
-ENV PASSWORD=your-password
+ENV PASSWORD=your_password
