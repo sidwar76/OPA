@@ -20,10 +20,14 @@ jobs:
           chmod +x opa_linux_amd64
           sudo mv opa_linux_amd64 /usr/local/bin/opa
 
-      # Run OPA tests to evaluate the Dockerfile against the policies
-      - name: Run OPA checks
+      # Save the Dockerfile content to a temporary file
+      - name: Save Dockerfile
+        run: echo "${{ steps.docker_build.outputs.DOCKERFILE }}" > Dockerfile
+
+      # Save the OPA policies to a file
+      - name: Save OPA policies
         run: |
-          opa test -v -f pretty - <<EOF
+          cat <<EOF > opa-test.rego
           package docker.security
 
           import data.docker
@@ -34,12 +38,10 @@ jobs:
           }
           EOF
 
-          # Save the Dockerfile content to a temporary file
-          echo "${{ steps.docker_build.outputs.DOCKERFILE }}" > Dockerfile
-
-          # Evaluate the Dockerfile content against the policies
-          cat Dockerfile | opa test --format pretty -v
+      # Run OPA tests to evaluate the Dockerfile against the policies
+      - name: Run OPA checks
+        run: cat Dockerfile | opa test --format pretty -v --stdin-input opa-test.rego
 
       # Cleanup temporary files
       - name: Cleanup
-        run: rm Dockerfile
+        run: rm Dockerfile opa-test.rego
