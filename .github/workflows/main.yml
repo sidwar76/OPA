@@ -1,0 +1,29 @@
+import json
+
+def load_dockerfile():
+    with open('Dockerfile.json', 'r') as file:
+        data = json.load(file)
+    return data
+
+def check_base_image(dockerfile_data):
+    for command in dockerfile_data:
+        if command["cmd"] == "FROM" and command["value"] == ["alpine:3.11"]:
+            print("Rule: Using an outdated base image (alpine:3.11) is not allowed")
+
+def check_root_password(dockerfile_data):
+    for command in dockerfile_data:
+        if command["cmd"] == "RUN" and "echo \"root:insecurepassword\" | chpasswd" in command["value"]:
+            print("Rule: Root password should not be set to 'insecurepassword'")
+
+def check_sensitive_data(dockerfile_data):
+    for command in dockerfile_data:
+        if command["cmd"] == "ENV" and "PASSWORD" in command["value"]:
+            print("Rule: Avoid using 'PASSWORD' as an environment variable as it may contain sensitive data")
+
+if __name__ == "__main__":
+    dockerfile_data = load_dockerfile()
+
+    check_base_image(dockerfile_data)
+    check_root_password(dockerfile_data)
+    check_sensitive_data(dockerfile_data)
+
