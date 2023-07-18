@@ -13,6 +13,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      # Debug: Display the contents of opa-policies.rego
+      - name: Debug Policy File
+        run: cat opa-policies.rego
+
       # Install dockerfile2json using Go modules
       - name: Install dockerfile2json
         run: pip install dockerfile2json
@@ -20,8 +24,9 @@ jobs:
       # Convert Dockerfile to JSON format
       - name: Convert Dockerfile to JSON
         run: dockerfile2json ./Dockerfile > Dockerfile.json
-        
-      - name: Debug
+
+      # Debug: Display the contents of Dockerfile.json
+      - name: Debug JSON File
         run: cat Dockerfile.json
 
       # Install OPA (replace with your OPA version if needed)
@@ -31,9 +36,19 @@ jobs:
           chmod +x opa_linux_amd64
           sudo mv opa_linux_amd64 /usr/local/bin/opa
 
+      # Debug: Verify OPA version
+      - name: Debug OPA Version
+        run: opa version
+
+      # Debug: Verify OPA policies can be loaded
+      - name: Debug OPA Policy Load
+        run: opa eval --format pretty "data.system.main" --data opa-policies.rego
+
+      # Debug: Verify input data for OPA
+      - name: Debug Input Data
+        run: cat Dockerfile.json | opa eval --format pretty "input"
+        
       # Run OPA to evaluate the Dockerfile against the policies
       - name: Run OPA checks
         run: |
-          echo '[{"cmd": "FROM", "sub_cmd": null, "json": false, "original": "FROM alpine:3.11", "start_line": 4, "end_line": 4, "flags": [], "value": ["alpine:3.11"]}]' | opa eval --data opa-policies.rego 'data.docker = input'
-
-
+          opa eval --data opa-policies.rego 'data.docker = input' --input Dockerfile.json
