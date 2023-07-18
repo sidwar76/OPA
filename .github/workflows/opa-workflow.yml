@@ -24,9 +24,9 @@ jobs:
           chmod +x opa_linux_amd64
           sudo mv opa_linux_amd64 /usr/local/bin/opa
 
-      # Convert Dockerfile to JSON
+      # Convert Dockerfile to JSON using jq
       - name: Convert Dockerfile to JSON
-        run: dockerfile2json Dockerfile > Dockerfile.json
+        run: cat Dockerfile | jq -Rs '.' > Dockerfile.json
 
       # Run OPA to evaluate the Dockerfile JSON against the policies
       - name: Run OPA checks
