@@ -27,5 +27,14 @@ jobs:
 
       - name: Run Dockerfile checker
         run: |
-          python dockerfile_checker.py
+          python dockerfile_checker.py > policy_report.txt
+          
+      # Publish the policy_report.txt as an artifact
+      - name: Publish Policy Report
+        uses: actions/upload-artifact@v2
+        with:
+          name: policy-report
+          path: ./policy_report.txt
+
+          
 
