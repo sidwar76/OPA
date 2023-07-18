@@ -20,6 +20,9 @@ jobs:
       # Convert Dockerfile to JSON format
       - name: Convert Dockerfile to JSON
         run: dockerfile2json ./Dockerfile > Dockerfile.json
+        
+      - name: Debug
+        run: cat Dockerfile.json
 
       # Install OPA (replace with your OPA version if needed)
       - name: Install OPA
