@@ -31,5 +31,5 @@ jobs:
       # Run OPA to evaluate the Dockerfile against the policies
       - name: Run OPA checks
         run: |
-          opa eval --data opa-policies.rego 'data.docker = input' --input Dockerfile.json
+          cat Dockerfile.json | opa eval --data opa-policies.rego 'data.docker = input'
 
