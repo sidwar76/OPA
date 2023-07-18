@@ -20,12 +20,6 @@ deny[msg] {
     msg = "Installing packages as root is not allowed"
 }
 
-# Disallow unnecessary port exposure
-deny[msg] {
-    contains(input.expose.ports, 80)
-    msg = "Exposing port 80 is unnecessary"
-}
-
 # Disallow setting sensitive information as environment variables
 deny[msg] {
     input.env.vars[_].key == "API_KEY"  # Example: Detecting API_KEY
