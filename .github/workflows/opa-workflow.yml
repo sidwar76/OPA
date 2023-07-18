@@ -3,7 +3,7 @@ name: OPA Checks
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   opa-checks:
@@ -13,6 +13,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      # Build the Docker image (replace "your_image_name" with the actual image name)
+      - name: Build Docker image
+        run: docker build -t your_image_name .
+
       # Install OPA (replace with your OPA version if needed)
       - name: Install OPA
         run: |
@@ -20,29 +24,15 @@ jobs:
           chmod +x opa_linux_amd64
           sudo mv opa_linux_amd64 /usr/local/bin/opa
 
-      # Save the Dockerfile content to a temporary file
-      - name: Save Dockerfile
-        run: echo "${{ steps.docker_build.outputs.DOCKERFILE }}" > Dockerfile
+      # Convert Dockerfile to JSON
+      - name: Convert Dockerfile to JSON
+        run: dockerfile2json Dockerfile > Dockerfile.json
 
-      # Save the OPA policies to a file
-      - name: Save OPA policies
-        run: |
-          cat <<EOF > opa-test.rego
-          package docker.security
-
-          import data.docker
-          import input
-
-          main = result {
-              # ... (your OPA policies)
-          }
-          EOF
-
-      # Run OPA tests to evaluate the Dockerfile against the policies
+      # Run OPA to evaluate the Dockerfile JSON against the policies
       - name: Run OPA checks
-        run: opa test --format pretty -v --data Dockerfile=../Dockerfile opa-test.rego
+        run: |
+          opa eval --data opa-policies.rego --input Dockerfile.json
 
       # Cleanup temporary files
       - name: Cleanup
-        run: rm Dockerfile opa-test.rego
-
+        run: rm Dockerfile.json
