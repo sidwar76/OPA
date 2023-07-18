@@ -13,13 +13,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Initialize Go module
-      - name: Initialize Go module
-        run: go mod init my-module
-
-      # Install dockerfile2json using go get
+      # Install dockerfile2json using Go modules
       - name: Install dockerfile2json
-        run: go get github.com/creasty/dockerfile2json
+        run: GO111MODULE=on go install github.com/creasty/dockerfile2json@latest
 
       # Convert Dockerfile to JSON format
       - name: Convert Dockerfile to JSON
@@ -36,3 +32,4 @@ jobs:
       - name: Run OPA checks
         run: |
           opa eval --data opa-policies.rego 'data.docker = input' --input Dockerfile.json
+
