@@ -18,9 +18,12 @@ jobs:
         with:
           python-version: '3.x' # Replace 'x' with the desired Python version (e.g., 3.8)
 
-      - name: Convert Dockerfile to Dockerfile.json
-        run: |
-          python dockerfile_converter.py Dockerfile > Dockerfile.json
+      - name: Install dockerfile2json
+        run: pip install dockerfile2json
+
+      # Convert Dockerfile to JSON format
+      - name: Convert Dockerfile to JSON
+        run: dockerfile2json ./Dockerfile > Dockerfile.json
 
       - name: Run Dockerfile checker
         run: |
