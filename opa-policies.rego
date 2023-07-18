@@ -8,18 +8,16 @@ deny[msg] {
 
 # Disallow setting passwords in Dockerfile
 deny[msg] {
-    contains(input.run.instructions[_], "echo \"root:insecurepassword\" | chpasswd") {
-        msg = "Setting passwords in Dockerfile is not allowed"
-    }
+    contains(input.run.instructions[_], "echo \"root:insecurepassword\" | chpasswd")
+    msg = "Setting passwords in Dockerfile is not allowed"
 }
 
 # Disallow installing packages as root
 deny[msg] {
-    contains(input.run.instructions[_], ["apk", "add"]) {
-        contains(input.run.instructions[_], "--no-cache")
-        contains(input.run.instructions[_], "curl")
-        msg = "Installing packages as root is not allowed"
-    }
+    contains(input.run.instructions[_], ["apk", "add"])
+    contains(input.run.instructions[_], "--no-cache")
+    contains(input.run.instructions[_], "curl")
+    msg = "Installing packages as root is not allowed"
 }
 
 # Disallow unnecessary port exposure
