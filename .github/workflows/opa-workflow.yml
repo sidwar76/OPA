@@ -15,7 +15,7 @@ jobs:
 
       # Install dockerfile2json using Go modules
       - name: Install dockerfile2json
-        run: GO111MODULE=on go install github.com/creasty/dockerfile2json@latest
+        run: pip install dockerfile2json
 
       # Convert Dockerfile to JSON format
       - name: Convert Dockerfile to JSON
