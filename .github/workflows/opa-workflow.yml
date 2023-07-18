@@ -13,9 +13,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Build the Docker image (replace "your_image_name" with the actual image name)
-      - name: Build Docker image
-        run: docker build -t your_image_name .
+      # Install Go (required for using go get)
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.x  # Replace with the Go version you want to use
+
+      # Install dockerfile2json using go get
+      - name: Install dockerfile2json
+        run: go get github.com/creasty/dockerfile2json
+
+      # Convert Dockerfile to JSON format
+      - name: Convert Dockerfile to JSON
+        run: dockerfile2json < Dockerfile > Dockerfile.json
 
       # Install OPA (replace with your OPA version if needed)
       - name: Install OPA
@@ -24,15 +34,7 @@ jobs:
           chmod +x opa_linux_amd64
           sudo mv opa_linux_amd64 /usr/local/bin/opa
 
-      # Convert Dockerfile to JSON using jq
-      - name: Convert Dockerfile to JSON
-        run: cat Dockerfile | jq -Rs '.' > Dockerfile.json
-
-      # Run OPA to evaluate the Dockerfile JSON against the policies
+      # Run OPA to evaluate the Dockerfile against the policies
       - name: Run OPA checks
         run: |
-          opa eval --data opa-policies.rego 'data.docker = read_json("Dockerfile.json")'
-
-      # Cleanup temporary files
-      - name: Cleanup
-        run: rm Dockerfile.json
+          opa eval --data opa-policies.rego 'data.docker = input' --input Dockerfile.json
