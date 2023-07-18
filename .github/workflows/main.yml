@@ -1,29 +1,28 @@
-import json
+name: Dockerfile Check
 
-def load_dockerfile():
-    with open('Dockerfile.json', 'r') as file:
-        data = json.load(file)
-    return data
+on:
+  push:
+    branches:
+      - main
 
-def check_base_image(dockerfile_data):
-    for command in dockerfile_data:
-        if command["cmd"] == "FROM" and command["value"] == ["alpine:3.11"]:
-            print("Rule: Using an outdated base image (alpine:3.11) is not allowed")
+jobs:
+  check_dockerfile:
+    runs-on: ubuntu-latest
 
-def check_root_password(dockerfile_data):
-    for command in dockerfile_data:
-        if command["cmd"] == "RUN" and "echo \"root:insecurepassword\" | chpasswd" in command["value"]:
-            print("Rule: Root password should not be set to 'insecurepassword'")
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-def check_sensitive_data(dockerfile_data):
-    for command in dockerfile_data:
-        if command["cmd"] == "ENV" and "PASSWORD" in command["value"]:
-            print("Rule: Avoid using 'PASSWORD' as an environment variable as it may contain sensitive data")
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x' # Replace 'x' with the desired Python version (e.g., 3.8)
 
-if __name__ == "__main__":
-    dockerfile_data = load_dockerfile()
+      - name: Convert Dockerfile to Dockerfile.json
+        run: |
+          python dockerfile_converter.py Dockerfile > Dockerfile.json
 
-    check_base_image(dockerfile_data)
-    check_root_password(dockerfile_data)
-    check_sensitive_data(dockerfile_data)
+      - name: Run Dockerfile checker
+        run: |
+          python dockerfile_checker.py
 
