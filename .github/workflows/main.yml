@@ -3,7 +3,7 @@ name: Dockerfile Check
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   check_dockerfile:
