@@ -37,7 +37,7 @@ jobs:
             export DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE="$DOCKER_CONTENT_TRUST_PASSPHRASE"
             mkdir -p my_keys
             docker trust key generate --dir my_keys my_signing_key
-            docker trust signer add --key my_keys my_signing_key sidwar/myapp:${{ github.sha }}
+            docker trust signer add my_signing_key --key my_keys/my_signing_key.pub sidwar/myapp:${{ github.sha }}
           else
             echo "Keys exist."
             echo "${{ secrets.DOCKER_CONTENT_TRUST_PRIVATE_KEY }}" | base64 -d > my_keys/private_key_file.key
@@ -51,7 +51,7 @@ jobs:
           DOCKER_CONTENT_TRUST_PASSPHRASE="${{ secrets.PASSPHRASE }}"
           echo "$DOCKER_CONTENT_TRUST_PASSPHRASE" > pass.txt
           chmod 600 pass.txt
-          docker trust sign -k my_signing_key --key my_keys/public_key_file.pub --passphrase-file pass.txt sidwar/myapp:${{ github.sha }}
+          docker trust sign -k my_signing_key --key my_keys/my_signing_key.pub --passphrase-file pass.txt sidwar/myapp:${{ github.sha }}
           rm -f pass.txt
 
       - name: Push Docker Image
@@ -75,4 +75,3 @@ jobs:
       - name: Verify the Signed Image
         if: steps.check_keys.outputs.keys_exist == 'true'
         run: docker trust verify sidwar/myapp:${{ github.sha }}
-
