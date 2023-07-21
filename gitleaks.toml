@@ -1,0 +1,17 @@
+[[rules]]
+description = "Potential sensitive information"
+id = "sensitive-info"
+regex = '''password|api_key|secret'''
+tags = ["high_severity"]
+
+[[rules]]
+description = "Potential access keys"
+id = "access-keys"
+regex = '''access_key|private_key'''
+tags = ["high_severity"]
+
+[[rules]]
+description = "Text file containing potential secrets"
+id = "secrets-file"
+file = '''secrets.txt'''
+tags = ["medium_severity"]
