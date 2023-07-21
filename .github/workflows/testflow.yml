@@ -37,7 +37,7 @@ jobs:
             export DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE="$DOCKER_CONTENT_TRUST_PASSPHRASE"
             docker trust key generate my_signing_key
             # Store the generated public and private keys as secrets
-            PRIVATE_KEY_CONTENT=$(base64 -w 0 private_key_file.key)
+            PRIVATE_KEY_CONTENT=$(base64 -w 0 my_signing_key.key)
             PUBLIC_KEY_CONTENT=$(base64 -w 0 my_signing_key.pub)
             echo "::set-output name=private_key::${PRIVATE_KEY_CONTENT}"
             echo "::set-output name=public_key::${PUBLIC_KEY_CONTENT}"
@@ -52,6 +52,9 @@ jobs:
             # Load the existing public and private keys from secrets
             PRIVATE_KEY_CONTENT="${{ secrets.DOCKER_CONTENT_TRUST_PRIVATE_KEY }}"
             PUBLIC_KEY_CONTENT="${{ secrets.DOCKER_CONTENT_TRUST_PUBLIC_KEY }}"
+            echo "${PRIVATE_KEY_CONTENT}" | base64 -d > my_signing_key.key
+            echo "${PUBLIC_KEY_CONTENT}" | base64 -d > my_signing_key.pub
+            docker trust key load my_signing_key.key --name my_signing_key
             echo "::set-output name=private_key::${PRIVATE_KEY_CONTENT}"
             echo "::set-output name=public_key::${PUBLIC_KEY_CONTENT}"
             echo "::set-output name=keys_exist::true"
@@ -64,9 +67,9 @@ jobs:
           DOCKER_CONTENT_TRUST_PASSPHRASE="${{ secrets.PASSPHRASE }}"
           echo "$DOCKER_CONTENT_TRUST_PASSPHRASE" > pass.txt
           chmod 600 pass.txt
-          echo "${{ steps.check_keys.outputs.private_key }}" | base64 -d > private_key_file.key
-          echo "${{ steps.check_keys.outputs.public_key }}" | base64 -d > public_key_file.pub
-          docker trust sign -k my_signing_key --key public_key_file.pub --passphrase-file pass.txt sidwar/myapp:${{ github.sha }}
+          echo "${{ steps.check_keys.outputs.private_key }}" | base64 -d > my_signing_key.key
+          echo "${{ steps.check_keys.outputs.public_key }}" | base64 -d > my_signing_key.pub
+          docker trust sign -k my_signing_key --key my_signing_key.pub --passphrase-file pass.txt sidwar/myapp:${{ github.sha }}
           rm -f pass.txt
 
       - name: Push Docker Image
