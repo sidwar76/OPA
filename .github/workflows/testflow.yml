@@ -41,19 +41,16 @@ jobs:
             echo "$(base64 private_key_file.key)" >> private_key_secret.txt
             echo "$(base64 public_key_file.pub)" >> public_key_secret.txt
             echo "::set-output name=keys_exist::false"
-
             # Create the secrets using the GitHub API
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
             REPO_FULLNAME=$(echo $GITHUB_REPOSITORY | tr '[:upper:]' '[:lower:]')
             PRIVATE_KEY_CONTENT=$(base64 private_key_secret.txt)
             PUBLIC_KEY_CONTENT=$(base64 public_key_secret.txt)
-
             curl -X PUT \
               -H "Authorization: token $GITHUB_TOKEN" \
               -H "Accept: application/vnd.github.v3+json" \
               -d "{\"encrypted_value\":\"$PRIVATE_KEY_CONTENT\",\"key_id\":null}" \
               "https://api.github.com/repos/$REPO_FULLNAME/actions/secrets/DOCKER_CONTENT_TRUST_PRIVATE_KEY"
-
             curl -X PUT \
               -H "Authorization: token $GITHUB_TOKEN" \
               -H "Accept: application/vnd.github.v3+json" \
@@ -66,7 +63,7 @@ jobs:
             # Load the existing public and private keys from secrets
             echo "${{ secrets.DOCKER_CONTENT_TRUST_PRIVATE_KEY }}" | base64 -d > private_key_file.key
             echo "${{ secrets.DOCKER_CONTENT_TRUST_PUBLIC_KEY }}" | base64 -d > public_key_file.pub
-            docker trust key load private_key_file.key --name my_signing_key
+            docker trust key load private_key_file.key --name my_signing_key --key public_key_file.pub
             echo "::set-output name=keys_exist::true"
           fi
 
