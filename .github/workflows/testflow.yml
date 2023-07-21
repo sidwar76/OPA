@@ -39,8 +39,8 @@ jobs:
             docker trust signer add my_signing_key sidwar/myapp:${{ github.sha }}
           else
             echo "Keys exist."
-            echo "${{ secrets.DOCKER_CONTENT_TRUST_PRIVATE_KEY }}" > private_key_file.key
-            echo "${{ secrets.DOCKER_CONTENT_TRUST_PUBLIC_KEY }}" > public_key_file.pub
+            echo "${{ secrets.DOCKER_CONTENT_TRUST_PRIVATE_KEY }}" | base64 -d > private_key_file.key
+            echo "${{ secrets.DOCKER_CONTENT_TRUST_PUBLIC_KEY }}" | base64 -d > public_key_file.pub
             docker trust key load private_key_file.key --name my_signing_key
           fi
 
@@ -48,7 +48,7 @@ jobs:
         if: steps.check_keys.outputs.keys_exist == 'true'
         run: |
           DOCKER_CONTENT_TRUST_PASSPHRASE="${{ secrets.PASSPHRASE }}"
-          echo "$DOCKER_CONTENT_TRUST_PASSPHRASE" | docker trust sign --key my_signing_key sidwar/myapp:${{ github.sha }}
+          echo "$DOCKER_CONTENT_TRUST_PASSPHRASE" | docker trust sign -k my_signing_key --key public_key_file.pub sidwar/myapp:${{ github.sha }}
 
       - name: Push Docker Image
         run: |
