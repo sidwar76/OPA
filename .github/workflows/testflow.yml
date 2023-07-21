@@ -1,4 +1,4 @@
-name: Build, Scan, and Sign Docker Image
+name: Build, Scan, Sign, and Push Docker Image
 
 on:
   push:
@@ -35,18 +35,40 @@ jobs:
             echo "Generating new keys..."
             DOCKER_CONTENT_TRUST_PASSPHRASE="${{ secrets.PASSPHRASE }}"
             export DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE="$DOCKER_CONTENT_TRUST_PASSPHRASE"
-            mkdir -p my_keys
-            docker trust key generate --dir my_keys my_signing_key
+            docker trust key generate my_signing_key
+            docker trust signer add my_signing_key sidwar/myapp:${{ github.sha }}
+            # Store the generated public and private keys as secrets
+            echo "$(base64 private_key_file.key)" >> private_key_secret.txt
+            echo "$(base64 public_key_file.pub)" >> public_key_secret.txt
+            echo "::set-output name=keys_exist::false"
+
+            # Create the secrets using the GitHub API
+            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+            REPO_FULLNAME=$(echo $GITHUB_REPOSITORY | tr '[:upper:]' '[:lower:]')
+            PRIVATE_KEY_CONTENT=$(base64 private_key_secret.txt)
+            PUBLIC_KEY_CONTENT=$(base64 public_key_secret.txt)
+
+            curl -X PUT \
+              -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              -d "{\"encrypted_value\":\"$PRIVATE_KEY_CONTENT\",\"key_id\":null}" \
+              "https://api.github.com/repos/$REPO_FULLNAME/actions/secrets/DOCKER_CONTENT_TRUST_PRIVATE_KEY"
+
+            curl -X PUT \
+              -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              -d "{\"encrypted_value\":\"$PUBLIC_KEY_CONTENT\",\"key_id\":null}" \
+              "https://api.github.com/repos/$REPO_FULLNAME/actions/secrets/DOCKER_CONTENT_TRUST_PUBLIC_KEY"
+            
+            echo "Docker Content Trust secrets have been created."
           else
             echo "Keys exist."
-            echo "${{ secrets.DOCKER_CONTENT_TRUST_PRIVATE_KEY }}" | base64 -d > my_keys/private_key_file.key
-            echo "${{ secrets.DOCKER_CONTENT_TRUST_PUBLIC_KEY }}" | base64 -d > my_keys/public_key_file.pub
+            # Load the existing public and private keys from secrets
+            echo "${{ secrets.DOCKER_CONTENT_TRUST_PRIVATE_KEY }}" | base64 -d > private_key_file.key
+            echo "${{ secrets.DOCKER_CONTENT_TRUST_PUBLIC_KEY }}" | base64 -d > public_key_file.pub
+            docker trust key load private_key_file.key --name my_signing_key
+            echo "::set-output name=keys_exist::true"
           fi
-
-      - name: Add Signer
-        if: steps.check_keys.outputs.keys_exist == 'true'
-        run: |
-          docker trust signer add my_signing_key --key my_keys/public_key_file.pub sidwar/myapp:${{ github.sha }}
 
       - name: Sign the Docker Image
         if: steps.check_keys.outputs.keys_exist == 'true'
@@ -54,7 +76,7 @@ jobs:
           DOCKER_CONTENT_TRUST_PASSPHRASE="${{ secrets.PASSPHRASE }}"
           echo "$DOCKER_CONTENT_TRUST_PASSPHRASE" > pass.txt
           chmod 600 pass.txt
-          docker trust sign -k my_signing_key --key my_keys/my_signing_key.pub --passphrase-file pass.txt sidwar/myapp:${{ github.sha }}
+          docker trust sign -k my_signing_key --key public_key_file.pub --passphrase-file pass.txt sidwar/myapp:${{ github.sha }}
           rm -f pass.txt
 
       - name: Push Docker Image
