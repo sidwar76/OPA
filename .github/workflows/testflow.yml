@@ -48,7 +48,10 @@ jobs:
         if: steps.check_keys.outputs.keys_exist == 'true'
         run: |
           DOCKER_CONTENT_TRUST_PASSPHRASE="${{ secrets.PASSPHRASE }}"
-          echo "$DOCKER_CONTENT_TRUST_PASSPHRASE" | docker trust sign -k my_signing_key --key public_key_file.pub sidwar/myapp:${{ github.sha }}
+          echo "$DOCKER_CONTENT_TRUST_PASSPHRASE" > pass.txt
+          chmod 600 pass.txt
+          docker trust sign -k my_signing_key --key public_key_file.pub --passphrase-file pass.txt sidwar/myapp:${{ github.sha }}
+          rm -f pass.txt
 
       - name: Push Docker Image
         run: |
