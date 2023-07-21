@@ -1,4 +1,4 @@
-name: Build
+name: Build, Scan, and Sign Docker Image
 
 on:
   push:
@@ -26,6 +26,7 @@ jobs:
             DOCKER_CONTENT_TRUST_PASSPHRASE="${{ secrets.PASSPHRASE }}"
             export DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE="$DOCKER_CONTENT_TRUST_PASSPHRASE"
             docker trust key generate my_signing_key
+            mkdir keys
             mv my_signing_key.pub keys/
             mv my_signing_key.key keys/
             echo "::set-output name=private_key::$(base64 -w 0 keys/my_signing_key.key)"
@@ -45,6 +46,7 @@ jobs:
           DOCKER_CONTENT_TRUST_PASSPHRASE="${{ secrets.PASSPHRASE }}"
           export DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE="$DOCKER_CONTENT_TRUST_PASSPHRASE"
           docker trust key generate my_signing_key
+          mkdir keys
           mv my_signing_key.pub keys/
           mv my_signing_key.key keys/
           echo "::set-output name=private_key::$(base64 -w 0 keys/my_signing_key.key)"
@@ -74,4 +76,4 @@ jobs:
             -d "{\"encrypted_value\":\"$PUBLIC_KEY_CONTENT\",\"key_id\":null}" \
             "https://api.github.com/repos/$REPO_FULLNAME/actions/secrets/DOCKER_CONTENT_TRUST_PUBLIC_KEY"
 
-      # Add other steps in the workflow, including image signing and verification steps
+
