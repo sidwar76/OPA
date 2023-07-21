@@ -35,21 +35,23 @@ jobs:
             echo "Generating new keys..."
             DOCKER_CONTENT_TRUST_PASSPHRASE="${{ secrets.PASSPHRASE }}"
             export DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE="$DOCKER_CONTENT_TRUST_PASSPHRASE"
-            docker trust key generate my_signing_key
-            docker trust signer add my_signing_key sidwar/myapp:${{ github.sha }}
+            docker trust key generate --dir . my_signing_key
+            docker trust signer add --key . my_signing_key sidwar/myapp:${{ github.sha }}
           else
             echo "Keys exist."
             echo "${{ secrets.DOCKER_CONTENT_TRUST_PRIVATE_KEY }}" | base64 -d > private_key_file.key
             echo "${{ secrets.DOCKER_CONTENT_TRUST_PUBLIC_KEY }}" | base64 -d > public_key_file.pub
-            docker trust key load private_key_file.key --name my_signing_key
+            docker trust key load --name my_signing_key --dir . private_key_file.key
           fi
 
       - name: Sign the Docker Image
         if: steps.check_keys.outputs.keys_exist == 'true'
-        uses: sudo-bot/action-docker-sign@latest
-        with:
-          image: sidwar/myapp:${{ github.sha }}
-          passphrase: ${{ secrets.PASSPHRASE }}
+        run: |
+          DOCKER_CONTENT_TRUST_PASSPHRASE="${{ secrets.PASSPHRASE }}"
+          echo "$DOCKER_CONTENT_TRUST_PASSPHRASE" > pass.txt
+          chmod 600 pass.txt
+          docker trust sign -k my_signing_key --key . --passphrase-file pass.txt sidwar/myapp:${{ github.sha }}
+          rm -f pass.txt
 
       - name: Push Docker Image
         run: |
