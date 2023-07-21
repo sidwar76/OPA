@@ -37,13 +37,16 @@ jobs:
             export DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE="$DOCKER_CONTENT_TRUST_PASSPHRASE"
             mkdir -p my_keys
             docker trust key generate --dir my_keys my_signing_key
-            docker trust signer add my_signing_key --key my_keys/my_signing_key.pub sidwar/myapp:${{ github.sha }}
           else
             echo "Keys exist."
             echo "${{ secrets.DOCKER_CONTENT_TRUST_PRIVATE_KEY }}" | base64 -d > my_keys/private_key_file.key
             echo "${{ secrets.DOCKER_CONTENT_TRUST_PUBLIC_KEY }}" | base64 -d > my_keys/public_key_file.pub
-            docker trust key load --name my_signing_key --dir my_keys my_keys/private_key_file.key
           fi
+
+      - name: Add Signer
+        if: steps.check_keys.outputs.keys_exist == 'true'
+        run: |
+          docker trust signer add my_signing_key --key my_keys/public_key_file.pub sidwar/myapp:${{ github.sha }}
 
       - name: Sign the Docker Image
         if: steps.check_keys.outputs.keys_exist == 'true'
