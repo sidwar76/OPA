@@ -62,4 +62,3 @@ jobs:
             "https://api.github.com/repos/$REPO_FULLNAME/actions/secrets/DOCKER_CONTENT_TRUST_PUBLIC_KEY"
 
       # Add other steps in the workflow, including image signing and verification steps
-
