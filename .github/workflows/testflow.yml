@@ -1,4 +1,4 @@
-name: Build, Scan, Sign, and Push Docker Image
+name: Build, Scan, and Sign Docker Image
 
 on:
   push:
@@ -24,9 +24,6 @@ jobs:
         run: |
           # Log in to Docker Hub or the desired container registry using environment variables
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-
-      - name: Enable Docker Content Trust
-        run: export DOCKER_CONTENT_TRUST=1
 
       - name: Check if Keys Exist
         id: check_keys
@@ -66,14 +63,13 @@ jobs:
             echo "::set-output name=keys_exist::true"
           fi
 
-
       - name: Sign the Docker Image
         if: steps.check_keys.outputs.keys_exist == 'true'
         run: |
           DOCKER_CONTENT_TRUST_PASSPHRASE="${{ secrets.PASSPHRASE }}"
           echo "$DOCKER_CONTENT_TRUST_PASSPHRASE" > pass.txt
           chmod 600 pass.txt
-          docker trust sign -k my_signing_key --key public_key_file.pub --passphrase-file pass.txt sidwar/myapp:${{ github.sha }}
+          docker trust sign -k my_signing_key --key my_signing_key.pub --passphrase-file pass.txt sidwar/myapp:${{ github.sha }}
           rm -f pass.txt
 
       - name: Push Docker Image
@@ -93,7 +89,6 @@ jobs:
 
       # Add other steps for your scanning process (if any)
 
-      # Verify the Signed Image (Optional)
       - name: Verify the Signed Image
         if: steps.check_keys.outputs.keys_exist == 'true'
         run: docker trust verify sidwar/myapp:${{ github.sha }}
