@@ -71,3 +71,4 @@ jobs:
       - name: Verify the Signed Image
         if: steps.check_keys.outputs.keys_exist == 'true'
         run: docker trust verify sidwar/myapp:${{ github.sha }}
+
