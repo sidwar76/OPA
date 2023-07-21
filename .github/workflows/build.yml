@@ -1,0 +1,77 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build_scan_sign_image:
+    name: Build, Scan, Sign, and Push Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      # Add other steps in the workflow as needed
+
+      - name: Check if Keys Exist
+        id: check_keys
+        run: |
+          DOCKER_CONTENT_TRUST_PRIVATE_KEY=${{ secrets.DOCKER_CONTENT_TRUST_PRIVATE_KEY }}
+          DOCKER_CONTENT_TRUST_PUBLIC_KEY=${{ secrets.DOCKER_CONTENT_TRUST_PUBLIC_KEY }}
+          if [ -z "$DOCKER_CONTENT_TRUST_PRIVATE_KEY" ] || [ -z "$DOCKER_CONTENT_TRUST_PUBLIC_KEY" ]; then
+            echo "Keys do not exist."
+            DOCKER_CONTENT_TRUST_PASSPHRASE="${{ secrets.PASSPHRASE }}"
+            export DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE="$DOCKER_CONTENT_TRUST_PASSPHRASE"
+            docker trust key generate my_signing_key
+            mv my_signing_key.pub keys/
+            mv my_signing_key.key keys/
+            echo "::set-output name=private_key::$(base64 -w 0 keys/my_signing_key.key)"
+            echo "::set-output name=public_key::$(base64 -w 0 keys/my_signing_key.pub)"
+            echo "::set-output name=keys_exist::false"
+          else
+            echo "Keys exist."
+            echo "::set-output name=private_key::$DOCKER_CONTENT_TRUST_PRIVATE_KEY"
+            echo "::set-output name=public_key::$DOCKER_CONTENT_TRUST_PUBLIC_KEY"
+            echo "::set-output name=keys_exist::true"
+          fi
+        shell: bash
+
+      - name: Create Keys if Not Exist
+        if: steps.check_keys.outputs.keys_exist == 'false'
+        run: |
+          DOCKER_CONTENT_TRUST_PASSPHRASE="${{ secrets.PASSPHRASE }}"
+          export DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE="$DOCKER_CONTENT_TRUST_PASSPHRASE"
+          docker trust key generate my_signing_key
+          mv my_signing_key.pub keys/
+          mv my_signing_key.key keys/
+          echo "::set-output name=private_key::$(base64 -w 0 keys/my_signing_key.key)"
+          echo "::set-output name=public_key::$(base64 -w 0 keys/my_signing_key.pub)"
+
+      - name: Create Private Key Secret
+        if: steps.check_keys.outputs.keys_exist == 'false'
+        run: |
+          GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          REPO_FULLNAME=$(echo $GITHUB_REPOSITORY | tr '[:upper:]' '[:lower:]')
+          PRIVATE_KEY_CONTENT=$(base64 -w 0 keys/my_signing_key.key)
+          curl -X PUT \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -d "{\"encrypted_value\":\"$PRIVATE_KEY_CONTENT\",\"key_id\":null}" \
+            "https://api.github.com/repos/$REPO_FULLNAME/actions/secrets/DOCKER_CONTENT_TRUST_PRIVATE_KEY"
+
+      - name: Create Public Key Secret
+        if: steps.check_keys.outputs.keys_exist == 'false'
+        run: |
+          GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          REPO_FULLNAME=$(echo $GITHUB_REPOSITORY | tr '[:upper:]' '[:lower:]')
+          PUBLIC_KEY_CONTENT=$(base64 -w 0 keys/my_signing_key.pub)
+          curl -X PUT \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -d "{\"encrypted_value\":\"$PUBLIC_KEY_CONTENT\",\"key_id\":null}" \
+            "https://api.github.com/repos/$REPO_FULLNAME/actions/secrets/DOCKER_CONTENT_TRUST_PUBLIC_KEY"
+
+      # Add other steps in the workflow, including image signing and verification steps
