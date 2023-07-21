@@ -33,6 +33,8 @@ jobs:
         run: |
           if [ -z "${{ secrets.DOCKER_CONTENT_TRUST_PRIVATE_KEY }}" ] || [ -z "${{ secrets.DOCKER_CONTENT_TRUST_PUBLIC_KEY }}" ]; then
             echo "Generating new keys..."
+            DOCKER_CONTENT_TRUST_PASSPHRASE="${{ secrets.PASSPHRASE }}"
+            export DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE="$DOCKER_CONTENT_TRUST_PASSPHRASE"
             docker trust key generate my_signing_key
             docker trust signer add my_signing_key sidwar/myapp:${{ github.sha }}
           else
@@ -45,7 +47,7 @@ jobs:
       - name: Sign the Docker Image
         if: steps.check_keys.outputs.keys_exist == 'true'
         run: |
-          DOCKER_CONTENT_TRUST_PASSPHRASE="${{ secrets.DOCKER_CONTENT_TRUST_PASSPHRASE }}"
+          DOCKER_CONTENT_TRUST_PASSPHRASE="${{ secrets.PASSPHRASE }}"
           echo "$DOCKER_CONTENT_TRUST_PASSPHRASE" | docker trust sign --key my_signing_key sidwar/myapp:${{ github.sha }}
 
       - name: Push Docker Image
@@ -69,4 +71,3 @@ jobs:
       - name: Verify the Signed Image
         if: steps.check_keys.outputs.keys_exist == 'true'
         run: docker trust verify sidwar/myapp:${{ github.sha }}
-
