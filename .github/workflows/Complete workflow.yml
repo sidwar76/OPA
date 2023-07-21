@@ -38,7 +38,7 @@ jobs:
           name: policy-report
           path: ./policy_report.txt
 
-  gitleaks_scan:
+  secret_scanning:
     name: Gitleaks Scan
     runs-on: ubuntu-latest
     steps:
@@ -91,6 +91,20 @@ jobs:
         with:
           name: gitleaks-scan-report
           path: gitleaks-report.json
+          
+      - name: pull TruffleHog
+        run: docker pull gesellix/trufflehog
+
+      - name: Run TruffleHog
+        run: |
+          # Run TruffleHog and capture the output in trufflehog-report.json
+          docker run -t gesellix/trufflehog --json https://github.com/sidwar76/OPA.git > trufflehog-report.json
+        # Publish the TruffleHog report as an artifact
+      - name: Publish TruffleHog Report
+        uses: actions/upload-artifact@v2
+        with:
+            name: trufflehog-report
+            path: ./trufflehog-report.json
 
   build_and_scan:
     name: Build, Scan, and Sign Docker Image
@@ -138,17 +152,3 @@ jobs:
         with:
             name: sign-image-report
             path: ./sign-image-report.txt
-
-      - name: pull TruffleHog
-        run: docker pull gesellix/trufflehog
-
-      - name: Run TruffleHog
-        run: |
-          # Run TruffleHog and capture the output in trufflehog-report.json
-          docker run -t gesellix/trufflehog --json https://github.com/sidwar76/OPA.git > trufflehog-report.json
-        # Publish the TruffleHog report as an artifact
-      - name: Publish TruffleHog Report
-        uses: actions/upload-artifact@v2
-        with:
-            name: trufflehog-report
-            path: ./trufflehog-report.json
