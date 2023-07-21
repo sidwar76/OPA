@@ -38,8 +38,8 @@ jobs:
           name: policy-report
           path: ./policy_report.txt
 
-  gitleaks_scan:
-    name: Gitleaks Scan
+  secret_scanning:
+    name: Secret Scanning (Gitleaks and TruffleHog)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -47,16 +47,9 @@ jobs:
 
       - name: Download Gitleaks Binary
         run: |
-          wget https://github.com/gitleaks/gitleaks/releases/download/v8.17.0/gitleaks_8.17.0_linux_x64.tar.gz
-          tar -xzf gitleaks_8.17.0_linux_x64.tar.gz -C /tmp
-          chmod +x /tmp/gitleaks
-      - name: Move Gitleaks Binary to /usr/local/bin
-        run: sudo mv /tmp/gitleaks /usr/local/bin/
-
-      - name: Debug
-        run: ls /usr/local/bin/
-      - name: help
-        run: gitleaks --help
+          wget https://github.com/zricethezav/gitleaks/releases/download/v7.7.0/gitleaks_linux_amd64
+          chmod +x gitleaks_linux_amd64
+          sudo mv gitleaks_linux_amd64 /usr/local/bin/gitleaks
 
       - name: Run Gitleaks Scan
         run: |
@@ -84,7 +77,16 @@ jobs:
           # Save custom rules to a temporary file
           echo "$CUSTOM_RULES" > CUSTOM_RULES.json
           # Run Gitleaks scan with custom rules and the repository URL
-          gitleaks detect -c gitleaks.toml --report-path gitleaks-report.json -f json 
+          gitleaks --config=CUSTOM_RULES.json --verbose --repo=$REPO_URL
+
+      - name: Pull TruffleHog
+        run: docker pull gesellix/trufflehog
+
+      - name: Run TruffleHog
+        run: |
+          # Run TruffleHog and capture the output in trufflehog-report.json
+          docker run -t gesellix/trufflehog --json https://github.com/sidwar76/OPA.git > trufflehog-report.json
+
       - name: Upload Gitleaks Scan Report
         if: always()
         uses: actions/upload-artifact@v2
@@ -92,8 +94,14 @@ jobs:
           name: gitleaks-scan-report
           path: gitleaks-report.json
 
+      - name: Publish TruffleHog Report
+        uses: actions/upload-artifact@v2
+        with:
+            name: trufflehog-report
+            path: ./trufflehog-report.json
+
   build_and_scan:
-    name: Build, Scan, and Sign Docker Image
+    name: Build and Scan Docker Image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -113,11 +121,11 @@ jobs:
       - name: Push Docker Image
         run: |
           docker push sidwar/myapp:${{ github.sha }}
+
       - name: Vulnerability Scanning
         run: |
           # Use Trivy for vulnerability scanning and capture the output in trivy-report.json
-          #docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/root/ aquasec/trivy:latest image sidwar/myapp:${{ github.sha }} > trivy-report.json
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/root/ aquasec/trivy:latest image --vuln-type="os,library" sidwar/myapp:${{ github.sha }}> trivy-report.json
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/root/ aquasec/trivy:latest image --vuln-type="os,library" sidwar/myapp:${{ github.sha }} > trivy-report.json
         # Publish the vulnerability scanning report as an artifact
       - name: Publish Vulnerability Scanning Report
         uses: actions/upload-artifact@v2
@@ -128,7 +136,7 @@ jobs:
       - name: Verify and Sign Image
         run: |
           # Verify if the Docker image is signed
-          if docker trust inspect --pretty myapp:${{ github.sha }} &> /dev/null; then
+          if docker trust inspect --pretty sidwar/myapp:${{ github.sha }} &> /dev/null; then
             echo "Image is already signed."
           else
             echo "Image is not signed. Signing the image using cosign..." > sign-image-report.txt
@@ -140,16 +148,3 @@ jobs:
             name: sign-image-report
             path: ./sign-image-report.txt
 
-      - name: pull TruffleHog
-        run: docker pull gesellix/trufflehog
-
-      - name: Run TruffleHog
-        run: |
-          # Run TruffleHog and capture the output in trufflehog-report.json
-          docker run -t gesellix/trufflehog --json https://github.com/sidwar76/OPA.git > trufflehog-report.json
-        # Publish the TruffleHog report as an artifact
-      - name: Publish TruffleHog Report
-        uses: actions/upload-artifact@v2
-        with:
-            name: trufflehog-report
-            path: ./trufflehog-report.json
