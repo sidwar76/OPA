@@ -28,6 +28,33 @@ jobs:
       - name: Enable Docker Content Trust
         run: export DOCKER_CONTENT_TRUST=1
 
+      - name: Check if Keys Exist
+        id: check_keys
+        run: |
+          if [ -z "${{ secrets.DOCKER_CONTENT_TRUST_PRIVATE_KEY }}" ] || [ -z "${{ secrets.DOCKER_CONTENT_TRUST_PUBLIC_KEY }}" ]; then
+            echo "Generating new keys..."
+            DOCKER_CONTENT_TRUST_PASSPHRASE="${{ secrets.PASSPHRASE }}"
+            export DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE="$DOCKER_CONTENT_TRUST_PASSPHRASE"
+            docker trust key generate my_signing_key
+            docker trust signer add my_signing_key sidwar/myapp:${{ github.sha }}
+          else
+            echo "Keys exist."
+            echo "${{ secrets.DOCKER_CONTENT_TRUST_PRIVATE_KEY }}" | base64 -d > private_key_file.key
+            echo "${{ secrets.DOCKER_CONTENT_TRUST_PUBLIC_KEY }}" | base64 -d > public_key_file.pub
+            docker trust key load private_key_file.key --name my_signing_key
+          fi
+
+      - name: Sign the Docker Image
+        if: steps.check_keys.outputs.keys_exist == 'true'
+        uses: sudo-bot/action-docker-sign@latest
+        with:
+          image: sidwar/myapp:${{ github.sha }}
+          passphrase: ${{ secrets.PASSPHRASE }}
+
+      - name: Push Docker Image
+        run: |
+          docker push sidwar/myapp:${{ github.sha }}
+
       - name: Vulnerability Scanning
         run: |
           # Use Trivy for vulnerability scanning and capture the output in trivy-report.json
@@ -41,13 +68,7 @@ jobs:
 
       # Add other steps for your scanning process (if any)
 
-      - name: Sign Docker Image
-        uses: docker-slim/docker-sign-action@v0.2
-        with:
-          image: sidwar/myapp:${{ github.sha }}
-          username: sidwar
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          passphrase: ${{ secrets.PASSPHRASE }}
-          repository: myapp
-
-
+      # Verify the Signed Image (Optional)
+      - name: Verify the Signed Image
+        if: steps.check_keys.outputs.keys_exist == 'true'
+        run: docker trust verify sidwar/myapp:${{ github.sha }}
