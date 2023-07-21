@@ -1,0 +1,70 @@
+name: Build, Scan, and Sign Docker Image
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build_scan_sign_image:
+    name: Build, Scan, Sign, and Push Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Build Docker Image
+        run: docker build -t sidwar/myapp:${{ github.sha }} .
+
+      - name: Docker Logout
+        run: docker logout
+
+      - name: Docker Login
+        run: |
+          # Log in to Docker Hub or the desired container registry using environment variables
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Enable Docker Content Trust
+        run: export DOCKER_CONTENT_TRUST=1
+
+      - name: Check if Keys Exist
+        id: check_keys
+        run: |
+          if [ -z "${{ secrets.DOCKER_CONTENT_TRUST_PRIVATE_KEY }}" ] || [ -z "${{ secrets.DOCKER_CONTENT_TRUST_PUBLIC_KEY }}" ]; then
+            echo "Generating new keys..."
+            docker trust key generate YOUR_KEY_NAME
+            docker trust signer add YOUR_KEY_NAME sidwar/myapp:${{ github.sha }}
+          else
+            echo "Keys exist."
+            echo "${{ secrets.DOCKER_CONTENT_TRUST_PRIVATE_KEY }}" > private_key_file.key
+            echo "${{ secrets.DOCKER_CONTENT_TRUST_PUBLIC_KEY }}" > public_key_file.pub
+            docker trust key load private_key_file.key --name YOUR_KEY_NAME
+          fi
+
+      - name: Sign the Docker Image
+        if: steps.check_keys.outputs.keys_exist == 'true'
+        run: |
+          docker trust sign --key YOUR_KEY_NAME sidwar/myapp:${{ github.sha }}
+
+      - name: Push Docker Image
+        run: |
+          docker push sidwar/myapp:${{ github.sha }}
+
+      - name: Vulnerability Scanning
+        run: |
+          # Use Trivy for vulnerability scanning and capture the output in trivy-report.json
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/root/ aquasec/trivy:latest image --vuln-type="os,library" sidwar/myapp:${{ github.sha }} > trivy-report.json
+        # Publish the vulnerability scanning report as an artifact
+      - name: Publish Vulnerability Scanning Report
+        uses: actions/upload-artifact@v2
+        with:
+          name: vulnerability-report
+          path: ./trivy-report.json
+
+      # Add other steps for your scanning process (if any)
+
+      # Verify the Signed Image (Optional)
+      - name: Verify the Signed Image
+        if: steps.check_keys.outputs.keys_exist == 'true'
+        run: docker trust verify sidwar/myapp:${{ github.sha }}
