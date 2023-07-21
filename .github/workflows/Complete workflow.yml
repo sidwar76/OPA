@@ -107,8 +107,9 @@ jobs:
 
       - name: Docker Login
         run: |
-          # Log in to Docker Hub or the desired container registry
-          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+          # Log in to Docker Hub or the desired container registry using environment variables
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
       - name: Push Docker Image
         run: |
           docker push sidwar/myapp:${{ github.sha }}
