@@ -33,13 +33,13 @@ jobs:
         run: |
           if [ -z "${{ secrets.DOCKER_CONTENT_TRUST_PRIVATE_KEY }}" ] || [ -z "${{ secrets.DOCKER_CONTENT_TRUST_PUBLIC_KEY }}" ]; then
             echo "Generating new keys..."
-            docker trust key generate YOUR_KEY_NAME
-            docker trust signer add YOUR_KEY_NAME sidwar/myapp:${{ github.sha }}
+            docker trust key generate signkey
+            docker trust signer add signkey sidwar/myapp:${{ github.sha }}
           else
             echo "Keys exist."
             echo "${{ secrets.DOCKER_CONTENT_TRUST_PRIVATE_KEY }}" > private_key_file.key
             echo "${{ secrets.DOCKER_CONTENT_TRUST_PUBLIC_KEY }}" > public_key_file.pub
-            docker trust key load private_key_file.key --name YOUR_KEY_NAME
+            docker trust key load private_key_file.key --name signkey
           fi
 
       - name: Sign the Docker Image
