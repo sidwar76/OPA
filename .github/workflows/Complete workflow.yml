@@ -82,7 +82,7 @@ jobs:
             ]
           }'
           # Save custom rules to a temporary file
-          echo "$CUSTOM_RULES" > gitleaks.toml
+          echo "$CUSTOM_RULES" > CUSTOM_RULES.json
           # Run Gitleaks scan with custom rules and the repository URL
           gitleaks detect -c gitleaks.toml --report-path gitleaks-report.json -f json 
       - name: Upload Gitleaks Scan Report
