@@ -25,11 +25,14 @@ jobs:
             echo "Keys do not exist."
             DOCKER_CONTENT_TRUST_PASSPHRASE="${{ secrets.PASSPHRASE }}"
             export DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE="$DOCKER_CONTENT_TRUST_PASSPHRASE"
-            docker trust key generate my_signing_key
-            mv my_signing_key.pub keys/
-            mv my_signing_key.key keys/
-            echo "::set-output name=private_key::$(base64 -w 0 keys/my_signing_key.key)"
-            echo "::set-output name=public_key::$(base64 -w 0 keys/my_signing_key.pub)"
+            mkdir keys
+            PRIVATE_KEY_PATH="keys/my_signing_key.key"
+            PUBLIC_KEY_PATH="keys/my_signing_key.pub"
+            docker trust key generate --dir keys my_signing_key
+            PRIVATE_KEY_CONTENT=$(base64 -w 0 "$PRIVATE_KEY_PATH")
+            PUBLIC_KEY_CONTENT=$(base64 -w 0 "$PUBLIC_KEY_PATH")
+            echo "::set-output name=private_key::$PRIVATE_KEY_CONTENT"
+            echo "::set-output name=public_key::$PUBLIC_KEY_CONTENT"
             echo "::set-output name=keys_exist::false"
           else
             echo "Keys exist."
@@ -42,32 +45,16 @@ jobs:
       - name: Create Keys if Not Exist
         if: steps.check_keys.outputs.keys_exist == 'false'
         run: |
-          DOCKER_CONTENT_TRUST_PASSPHRASE="${{ secrets.PASSPHRASE }}"
-          export DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE="$DOCKER_CONTENT_TRUST_PASSPHRASE"
-          docker trust key generate my_signing_key
-          mv my_signing_key.pub keys/
-          mv my_signing_key.key keys/
-          echo "::set-output name=private_key::$(base64 -w 0 keys/my_signing_key.key)"
-          echo "::set-output name=public_key::$(base64 -w 0 keys/my_signing_key.pub)"
-
-      - name: Create Private Key Secret
-        if: steps.check_keys.outputs.keys_exist == 'false'
-        run: |
           GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
           REPO_FULLNAME=$(echo $GITHUB_REPOSITORY | tr '[:upper:]' '[:lower:]')
-          PRIVATE_KEY_CONTENT=$(base64 -w 0 keys/my_signing_key.key)
+          PRIVATE_KEY_CONTENT=${{ steps.check_keys.outputs.private_key }}
+          PUBLIC_KEY_CONTENT=${{ steps.check_keys.outputs.public_key }}
           curl -X PUT \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
             -d "{\"encrypted_value\":\"$PRIVATE_KEY_CONTENT\",\"key_id\":null}" \
             "https://api.github.com/repos/$REPO_FULLNAME/actions/secrets/DOCKER_CONTENT_TRUST_PRIVATE_KEY"
 
-      - name: Create Public Key Secret
-        if: steps.check_keys.outputs.keys_exist == 'false'
-        run: |
-          GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
-          REPO_FULLNAME=$(echo $GITHUB_REPOSITORY | tr '[:upper:]' '[:lower:]')
-          PUBLIC_KEY_CONTENT=$(base64 -w 0 keys/my_signing_key.pub)
           curl -X PUT \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
