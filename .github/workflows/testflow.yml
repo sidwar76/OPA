@@ -37,8 +37,8 @@ jobs:
             export DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE="$DOCKER_CONTENT_TRUST_PASSPHRASE"
             docker trust key generate my_signing_key
             mkdir -p keys
-            mv my_signing_key.key keys/
             mv my_signing_key.pub keys/
+            mv my_signing_key.key keys/
             # Store the generated public and private keys as secrets
             PRIVATE_KEY_CONTENT=$(base64 -w 0 keys/my_signing_key.key)
             PUBLIC_KEY_CONTENT=$(base64 -w 0 keys/my_signing_key.pub)
