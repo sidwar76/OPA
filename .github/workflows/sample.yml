@@ -28,7 +28,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: debug
-        run: ${{ secrets.COSIGN_PASSWORD }} > test.txt
+        run: echo ${{ secrets.COSIGN_PASSWORD }} > test.txt
       - name: debug2
         run: cat test.txt
 
