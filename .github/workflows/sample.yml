@@ -1,4 +1,4 @@
-name: sample Pipeline
+name: Docker Content Trust Signing
 
 on:
   push:
@@ -8,116 +8,45 @@ on:
   workflow_dispatch:
 
 jobs:
-  check_dockerfile:
+  sign_docker_image:
+    name: Sign and Push Docker Image
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
 
-      - name: Setup Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.x' # Replace 'x' with the desired Python version (e.g., 3.8)
+      - name: Set up Docker CLI
+        uses: docker/setup-docker@v1
 
-      - name: Install dockerfile2json
-        run: pip install dockerfile2json
+      - name: Save Private Key to File
+        run: echo "${{ secrets.DOCKER_PRIVATE_KEY }}" > private_key.pem
 
-      # Convert Dockerfile to JSON format
-      - name: Convert Dockerfile to JSON
-        run: dockerfile2json ./Dockerfile > Dockerfile.json
-
-      - name: Run Dockerfile checker
-        run: |
-          python dockerfile_checker.py > policy_report.txt
-          
-      # Publish the policy_report.txt as an artifact
-      - name: Publish Policy Report
-        uses: actions/upload-artifact@v2
-        with:
-          name: policy-report
-          path: ./policy_report.txt
-
-
-  sign_image:
-    name: Sign Docker Image
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Check out the repository
-        uses: actions/checkout@v2
-
-      - name: Set up GPG keys
-        run: |
-          echo "$DOCKER_GPG_PRIVATE_KEY" | gpg --import
+      - name: Load Private Key with Docker Trust
+        run: docker trust key load private_key.pem --name Jeff
         env:
-          DOCKER_GPG_PRIVATE_KEY: ${{ secrets.DOCKER_PRIVATE_KEY }}
+          DOCKER_CONTENT_TRUST: "1"
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Build Docker Image
+        run: docker build -t sidwar/myapp:latest .
 
-      - name: Set up Docker CLI with content trust
+      - name: Add Signer and Sign Image
         run: |
-          export DOCKER_CONTENT_TRUST=1
-          echo '' | docker trust key load --signer "${{ secrets.DOCKER_PRIVATE_KEY_ID }}"
+          expect <<EOF
+          spawn docker trust signer add --key jeff.pub Jeff sidwar/myapp:latest
+          expect "Enter passphrase for new signer key with ID jeff:"
+          send "${{ secrets.COMMON_PASSPHRASE }}\n"
+          expect "Successfully added signer: jeff"
+          spawn docker trust sign sidwar/myapp:latest
+          expect "Enter passphrase for signer key with ID jeff:"
+          send "${{ secrets.COMMON_PASSPHRASE }}\n"
+          expect "Successfully signed docker.io/sidwar/myapp:latest"
+          EOF
         env:
-          DOCKER_GPG_PASSPHRASE: ''
-          DOCKER_GPG_PRIVATE_KEY_ID: ${{ secrets.DOCKER_PRIVATE_KEY_ID }}
+          DOCKER_CONTENT_TRUST: "1"
 
-      - name: Build and push Docker image
-        run: |
-          docker build -t sidwar/myapp:latest .
-          docker push sidwar/myapp:latest
+      - name: Push Docker Image
+        run: docker push sidwar/myapp:latest
+        env:
+          DOCKER_CONTENT_TRUST: "1"
 
-
-  verify_signed_image:
-    name: Verify Signed Image
-    runs-on: ubuntu-latest
-
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set DOCKER_CONTENT_TRUST environment variable
-        run: |
-          echo "DOCKER_CONTENT_TRUST=1" >> $GITHUB_ENV
-
-      - name: Pull Docker Image
-        run: |
-          # Pull the Docker image from Docker Hub
-          docker pull sidwar/myapp:latest
-          
-      - name: Verify Signature
-        run: |
-          docker images
-          # Check the signature information of the Docker image
-          docker inspect sidwar/myapp:latest | jq '.[0].RepoDigests'
-
-
-
-          
-  vulnerability_scan:
-    name: Vulnerability Scanning
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v1
-
-      - name: Vulnerability Scanning
-        run: |
-          # Use Trivy for vulnerability scanning and capture the output in trivy-report.json
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/root/ aquasec/trivy:latest image --vuln-type="os,library" sidwar/myapp:${{ github.sha }} > trivy-report.json
-        # Publish the vulnerability scanning report as an artifact
-      - name: Publish Vulnerability Scanning Report
-        uses: actions/upload-artifact@v2
-        with:
-          name: vulnerability-report
-          path: ./trivy-report.json
