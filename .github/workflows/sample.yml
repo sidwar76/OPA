@@ -27,34 +27,15 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Store COSIGN_PASSWORD in artifact
-        run: echo "${{ secrets.COSIGN_PASSWORD }}" > cosign_password.txt
-        shell: bash
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: cosign-password-artifact
-          path: cosign_password.txt
-          
-      - name: Store COSIGN_PRIVATE_KEY in artifact
-        run: echo "${{ secrets.COSIGN_PRIVATE_KEY }}" > cosign_pvt.txt
-        shell: bash
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: cosign-pvt-artifact
-          path: cosign_pvt.txt
-    
-      
-      - name: debug2
-        run: cat test.txt
 
       - name: Build and push Docker image
-        run: |
-          docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.run_id }} .
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.run_id }}
+        id: build-and-push
+        uses: docker/build-push-action@v2.9.0
+        with:
+          context: .
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ github.actor }}/${{ env.IMAGE_NAME }}:${{ github.run_id }}
+
       
       - name: cosign-installer
         uses: sigstore/cosign-installer@v2.0.0
@@ -65,20 +46,8 @@ jobs:
         env:
           KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
           
-      - name: Install expect
-        run: sudo apt-get update && sudo apt-get install -y expect
-        
-      - name: Decrypt the private key
-        env:
-          COSIGN_PASSPHRASE: ${{ secrets.COSIGN_PASSWORD }}
-        run: |
-          echo "${{ secrets.COSIGN_PASSWORD }}" | openssl rsa -in cosign.key -out cosign.key.decrypted -passin stdin
-        shell: bash
-
-
       
       - name: Sign the published Docker image
-        env:
-          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
         run: cosign sign --key cosign.key ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.run_id }}
+
 
