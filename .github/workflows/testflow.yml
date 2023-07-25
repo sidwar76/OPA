@@ -1,4 +1,4 @@
-name: Build, Scan, and Sign Docker Image
+name: Build and sign Docker image
 
 on:
   push:
@@ -6,93 +6,39 @@ on:
       - master
 
 jobs:
-  build_scan_sign_image:
-    name: Build, Scan, Sign, and Push Docker Image
+  build_and_sign:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Build Docker Image
-        run: docker build -t sidwar/myapp:${{ github.sha }} .
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v1
 
-      - name: Docker Logout
-        run: docker logout
-
-      - name: Docker Login
+      - name: Set up GPG keys
         run: |
-          # Log in to Docker Hub or the desired container registry using environment variables
-          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          # Read the private key from the file
+          cat private_key.asc | gpg --import -
+        working-directory: ${{ github.workspace }}
 
-      - name: Enable Docker Content Trust
-        run: export DOCKER_CONTENT_TRUST=1
-
-      - name: Check if Keys Exist
-        id: check_keys
-        run: |
-          if [ -z "${{ secrets.DOCKER_CONTENT_TRUST_PRIVATE_KEY }}" ] || [ -z "${{ secrets.DOCKER_CONTENT_TRUST_PUBLIC_KEY }}" ]; then
-            echo "Generating new keys..."
-            DOCKER_CONTENT_TRUST_PASSPHRASE="${{ secrets.PASSPHRASE }}"
-            export DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE="$DOCKER_CONTENT_TRUST_PASSPHRASE"
-            docker trust key generate my_signing_key
-            mkdir -p keys
-            mv my_signing_key.pub keys/
-            mv my_signing_key.key keys/
-            # Store the generated public and private keys as secrets
-            PRIVATE_KEY_CONTENT=$(base64 -w 0 keys/my_signing_key.key)
-            PUBLIC_KEY_CONTENT=$(base64 -w 0 keys/my_signing_key.pub)
-            echo "::set-output name=private_key::${PRIVATE_KEY_CONTENT}"
-            echo "::set-output name=public_key::${PUBLIC_KEY_CONTENT}"
-            echo "::set-output name=keys_exist::false"
-            # Create the secrets using the GitHub API
-            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
-            REPO_FULLNAME=$(echo $GITHUB_REPOSITORY | tr '[:upper:]' '[:lower:]')
-            echo "${PRIVATE_KEY_CONTENT}" | gh secret set DOCKER_CONTENT_TRUST_PRIVATE_KEY --repo="$REPO_FULLNAME"
-            echo "${PUBLIC_KEY_CONTENT}" | gh secret set DOCKER_CONTENT_TRUST_PUBLIC_KEY --repo="$REPO_FULLNAME"
-          else
-            echo "Keys exist."
-            # Load the existing public and private keys from secrets
-            PRIVATE_KEY_CONTENT="${{ secrets.DOCKER_CONTENT_TRUST_PRIVATE_KEY }}"
-            PUBLIC_KEY_CONTENT="${{ secrets.DOCKER_CONTENT_TRUST_PUBLIC_KEY }}"
-            echo "${PRIVATE_KEY_CONTENT}" | base64 -d > keys/my_signing_key.key
-            echo "${PUBLIC_KEY_CONTENT}" | base64 -d > keys/my_signing_key.pub
-            docker trust key load keys/my_signing_key.key --name my_signing_key
-            echo "::set-output name=private_key::${PRIVATE_KEY_CONTENT}"
-            echo "::set-output name=public_key::${PUBLIC_KEY_CONTENT}"
-            echo "::set-output name=keys_exist::true"
-          fi
-        shell: bash
-
-      - name: Sign the Docker Image
-        if: steps.check_keys.outputs.keys_exist == 'true'
-        run: |
-          DOCKER_CONTENT_TRUST_PASSPHRASE="${{ secrets.PASSPHRASE }}"
-          echo "$DOCKER_CONTENT_TRUST_PASSPHRASE" > pass.txt
-          chmod 600 pass.txt
-          echo "${{ steps.check_keys.outputs.private_key }}" | base64 -d > keys/my_signing_key.key
-          echo "${{ steps.check_keys.outputs.public_key }}" | base64 -d > keys/my_signing_key.pub
-          docker trust sign -k my_signing_key --key keys/my_signing_key.pub --passphrase-file pass.txt sidwar/myapp:${{ github.sha }}
-          rm -f pass.txt
-
-      - name: Push Docker Image
-        run: |
-          docker push sidwar/myapp:${{ github.sha }}
-
-      - name: Vulnerability Scanning
-        run: |
-          # Use Trivy for vulnerability scanning and capture the output in trivy-report.json
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/root/ aquasec/trivy:latest image --vuln-type="os,library" sidwar/myapp:${{ github.sha }} > trivy-report.json
-        # Publish the vulnerability scanning report as an artifact
-      - name: Publish Vulnerability Scanning Report
-        uses: actions/upload-artifact@v2
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v1
         with:
-          name: vulnerability-report
-          path: ./trivy-report.json
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Add other steps for your scanning process (if any)
+      - name: Build and sign Docker image
+        run: |
+          # Create and use the Buildx builder
+          docker buildx create --use
 
-      # Verify the Signed Image (Optional)
-      - name: Verify the Signed Image
-        if: steps.check_keys.outputs.keys_exist == 'true'
-        run: docker trust verify sidwar/myapp:${{ github.sha }}
+          # Build the Docker image with multi-platform support and tag with GitHub SHA
+          docker buildx build --platform linux/amd64,linux/arm64 --push -t sidwar/myapp:${{ github.sha }} .
+        env:
+          # Set environment variables for the Docker build command
+          DOCKER_CLI_ACI: 1
+          DOCKER_BUILDKIT: 1
+          DOCKER_CONTENT_TRUST: 1
+          DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+
