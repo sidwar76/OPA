@@ -41,4 +41,19 @@ jobs:
           DOCKER_BUILDKIT: 1
           DOCKER_CONTENT_TRUST: 1
           DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          
+          
+      - name: Import public key for verification
+        run: |
+          # Read the public key from the file and import it
+          gpg --import public_key.asc
+
+      - name: Verify GPG signature of Docker image
+        run: |
+          # Pull the Docker image with the GPG signature
+          docker pull sidwar/myapp:${{ github.sha }}
+
+          # Verify the image against the signature
+          docker trust verify --signing-key 37800B1CA821E8DBA0E02C6609A3E699F359FC6B sidwar/myapp:${{ github.sha }}
+
 
