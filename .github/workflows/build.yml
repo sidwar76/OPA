@@ -1,4 +1,4 @@
-name: Build
+name: Generate GPG Key Pair
 
 on:
   push:
@@ -6,60 +6,18 @@ on:
       - master
 
 jobs:
-  build_scan_sign_image:
-    name: Build, Scan, Sign, and Push Docker Image
+  generate_gpg_key:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
-
-      # Add other steps in the workflow as needed
-
-      - name: Check if Keys Exist
-        id: check_keys
+      - name: Generate GPG Key
         run: |
-          DOCKER_CONTENT_TRUST_PRIVATE_KEY=${{ secrets.DOCKER_CONTENT_TRUST_PRIVATE_KEY }}
-          DOCKER_CONTENT_TRUST_PUBLIC_KEY=${{ secrets.DOCKER_CONTENT_TRUST_PUBLIC_KEY }}
-          if [ -z "$DOCKER_CONTENT_TRUST_PRIVATE_KEY" ] || [ -z "$DOCKER_CONTENT_TRUST_PUBLIC_KEY" ]; then
-            echo "Keys do not exist."
-            DOCKER_CONTENT_TRUST_PASSPHRASE="${{ secrets.PASSPHRASE }}"
-            export DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE="$DOCKER_CONTENT_TRUST_PASSPHRASE"
-            mkdir keys
-            PRIVATE_KEY_PATH="keys/my_signing_key.key"
-            PUBLIC_KEY_PATH="keys/my_signing_key.pub"
-            docker trust key generate --dir keys my_signing_key
-            PRIVATE_KEY_CONTENT=$(base64 -w 0 "$PRIVATE_KEY_PATH")
-            PUBLIC_KEY_CONTENT=$(base64 -w 0 "$PUBLIC_KEY_PATH")
-            echo "::set-output name=private_key::$PRIVATE_KEY_CONTENT"
-            echo "::set-output name=public_key::$PUBLIC_KEY_CONTENT"
-            echo "::set-output name=keys_exist::false"
-          else
-            echo "Keys exist."
-            echo "::set-output name=private_key::$DOCKER_CONTENT_TRUST_PRIVATE_KEY"
-            echo "::set-output name=public_key::$DOCKER_CONTENT_TRUST_PUBLIC_KEY"
-            echo "::set-output name=keys_exist::true"
-          fi
-        shell: bash
+          # Generate the GPG key pair (Note: The passphrase is set to empty here, which is not secure)
+          gpg --batch --passphrase '' --quick-gen-key "siddharth <sharmasid2398@gmail.com>"
 
-      - name: Create Keys if Not Exist
-        if: steps.check_keys.outputs.keys_exist == 'false'
-        run: |
-          GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
-          REPO_FULLNAME=$(echo $GITHUB_REPOSITORY | tr '[:upper:]' '[:lower:]')
-          PRIVATE_KEY_CONTENT=${{ steps.check_keys.outputs.private_key }}
-          PUBLIC_KEY_CONTENT=${{ steps.check_keys.outputs.public_key }}
-          curl -X PUT \
-            -H "Authorization: token $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            -d "{\"encrypted_value\":\"$PRIVATE_KEY_CONTENT\",\"key_id\":null}" \
-            "https://api.github.com/repos/$REPO_FULLNAME/actions/secrets/DOCKER_CONTENT_TRUST_PRIVATE_KEY"
+          # Print the public key
+          gpg --armor --export "your@email.com"
 
-          curl -X PUT \
-            -H "Authorization: token $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            -d "{\"encrypted_value\":\"$PUBLIC_KEY_CONTENT\",\"key_id\":null}" \
-            "https://api.github.com/repos/$REPO_FULLNAME/actions/secrets/DOCKER_CONTENT_TRUST_PUBLIC_KEY"
-
-      # Add other steps in the workflow, including image signing and verification steps
+          # Print the private key
+          gpg --armor --export-secret-keys "sharmasid2398@gmail.com"
 
