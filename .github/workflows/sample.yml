@@ -51,14 +51,8 @@ jobs:
         env:
           COSIGN_PASSPHRASE: ${{ secrets.COSIGN_PASSWORD }}
         run: |
-          expect <<EOF
-          spawn openssl rsa -in cosign.key -out cosign.key.decrypted -passin env:COSIGN_PASSPHRASE
-          expect "Enter pass phrase for"
-          send "$env(COSIGN_PASSPHRASE)\n"
-          expect "writing RSA key"
-          EOF
+          echo "${{ secrets.COSIGN_PASSWORD }}" | openssl rsa -in cosign.key -out cosign.key.decrypted -passin stdin
         shell: bash
-
 
 
       
