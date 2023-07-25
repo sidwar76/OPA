@@ -168,9 +168,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v1
-
       - name: Vulnerability Scanning
         run: |
           # Use Trivy for vulnerability scanning and capture the output in trivy-report.json
