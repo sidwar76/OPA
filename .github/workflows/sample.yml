@@ -27,8 +27,17 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: debug
-        run: echo ${{ secrets.COSIGN_PASSWORD }} > test.txt
+      - name: Store COSIGN_PASSWORD in artifact
+        run: echo "${{ secrets.COSIGN_PASSWORD }}" > cosign_password.txt
+        shell: bash
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: cosign-password-artifact
+          path: cosign_password.txt
+        
+      
       - name: debug2
         run: cat test.txt
 
