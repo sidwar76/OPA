@@ -93,11 +93,11 @@ jobs:
           # Sleep for a few seconds to allow Docker Hub to synchronize
           sleep 5
 
-      - name: Export Public Key
-        run: |
-          # Export the public key from the signature
-          cosign verify docker.io/sidwar/myapp:83d528afa9f3fb6f01b83e2407f8ddc39d52487d --key public_key.asc
-        # The exported public key will be saved in the public_key.asc file
+#       - name: Export Public Key
+#         run: |
+#           # Export the public key from the signature
+#           cosign verify docker.io/sidwar/myapp:83d528afa9f3fb6f01b83e2407f8ddc39d52487d --key public_key.asc
+#         # The exported public key will be saved in the public_key.asc file
 
       - name: Verify Signature
         run: |
