@@ -43,6 +43,13 @@ jobs:
         shell: bash
         env:
           KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          
+      - name: Decrypt the private key
+        env:
+          COSIGN_PASSPHRASE: ${{ secrets.COSIGN_PASSWORD }}
+        run: |
+          openssl rsa -in cosign.key -out cosign.key.decrypted -passin env:COSIGN_PASSPHRASE
+          mv cosign.key.decrypted cosign.key
       
       - name: Sign the published Docker image
         env:
