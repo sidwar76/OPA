@@ -154,14 +154,17 @@ jobs:
             name: vulnerability-report
             path: ./trivy-report.json
 
-      - name: Verify and Sign Image
+      - name: Verify GPG signature of Docker image
         run: |
-          # Verify if the Docker image is signed
-          if docker trust inspect --pretty myapp:${{ github.sha }} &> /dev/null; then
-            echo "Image is already signed." > sign-image-report.txt
-          else
-            echo "Image is not signed. Signing the image using cosign..." > sign-image-report.txt
-          fi
+          # Download the public key from the keyserver
+          gpg --keyserver keyserver.ubuntu.com --recv-keys 37800B1CA821E8DBA0E02C6609A3E699F359FC6B
+
+          # Pull the Docker image with the GPG signature
+          docker pull sidwar/myapp:${{ github.sha }}
+
+          # Verify the image against the signature
+          docker trust verify --signing-key 37800B1CA821E8DBA0E02C6609A3E699F359FC6B sidwar/myapp:${{ github.sha }}
+
         # Publish the sign image report as an artifact
       - name: Publish Sign Image Report
         uses: actions/upload-artifact@v2
