@@ -110,23 +110,38 @@ jobs:
   build_and_scan:
     name: Build, Scan, and Sign Docker Image
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Repository
+      - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Build Docker Image
-        run: docker build -t sidwar/myapp:${{ github.sha }} .
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v1
 
-      - name: Docker Logout
-        run: docker logout
+      - name: Set up GPG keys
+        run: |
+          # Read the private key from the file
+          cat private_key.asc | gpg --import -
+        working-directory: ${{ github.workspace }}
 
-      - name: Docker Login
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and sign Docker image
         run: |
-          # Log in to Docker Hub or the desired container registry using environment variables
-          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-      - name: Push Docker Image
-        run: |
-          docker push sidwar/myapp:${{ github.sha }}
+          # Create and use the Buildx builder
+          docker buildx create --use
+          # Build the Docker image with multi-platform support and tag with GitHub SHA
+          docker buildx build --platform linux/amd64,linux/arm64 --push -t sidwar/myapp:${{ github.sha }} .
+        env:
+          # Set environment variables for the Docker build command
+          DOCKER_CLI_ACI: 1
+          DOCKER_BUILDKIT: 1
+          DOCKER_CONTENT_TRUST: 1
+          DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       - name: Vulnerability Scanning
         run: |
           # Use Trivy for vulnerability scanning and capture the output in trivy-report.json
@@ -143,7 +158,7 @@ jobs:
         run: |
           # Verify if the Docker image is signed
           if docker trust inspect --pretty myapp:${{ github.sha }} &> /dev/null; then
-            echo "Image is already signed."
+            echo "Image is already signed." > sign-image-report.txt
           else
             echo "Image is not signed. Signing the image using cosign..." > sign-image-report.txt
           fi
