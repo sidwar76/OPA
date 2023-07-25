@@ -52,13 +52,20 @@ jobs:
       - name: Build Docker Image
         run: docker build -t sidwar/myapp:latest .
 
-      - name: Add Signer and Sign Image
+      - name: Add Signer
         run: |
           expect <<EOF
           spawn docker trust signer add --key jeff.pub jeff sidwar/myapp:latest
           expect "Enter passphrase for new signer key with ID jeff:"
           send "${{ secrets.COMMON_PASSPHRASE }}\n"
           expect "Successfully added signer: jeff"
+          EOF
+        env:
+          DOCKER_CONTENT_TRUST: "1"
+
+      - name: Sign Image
+        run: |
+          expect <<EOF
           spawn docker trust sign sidwar/myapp:latest
           expect "Enter passphrase for signer key with ID jeff:"
           send "${{ secrets.COMMON_PASSPHRASE }}\n"
@@ -66,6 +73,7 @@ jobs:
           EOF
         env:
           DOCKER_CONTENT_TRUST: "1"
+
 
       - name: Push Docker Image
         run: docker push sidwar/myapp:latest
