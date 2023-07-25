@@ -96,15 +96,13 @@ jobs:
       - name: Export Public Key
         run: |
           # Export the public key from the signature
-          cosign pubkey docker.io/sidwar/myapp:83d528afa9f3fb6f01b83e2407f8ddc39d52487d > extracted_pubkey.pem
-        # The exported public key will be saved in the extracted_pubkey.pem file
+          cosign verify docker.io/sidwar/myapp:83d528afa9f3fb6f01b83e2407f8ddc39d52487d --key public_key.asc
+        # The exported public key will be saved in the public_key.asc file
 
       - name: Verify Signature
         run: |
-          # Compare the exported public key with the provided public_key.asc file
-          diff -s public_key.asc extracted_pubkey.pem
-        # If the public keys match, it will show "Files public_key.asc and extracted_pubkey.pem are identical"
-
+          # Verify the signature of the Docker image using the exported public key
+          cosign verify docker.io/sidwar/myapp:83d528afa9f3fb6f01b83e2407f8ddc39d52487d --key public_key.asc
 
 
 
