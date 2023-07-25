@@ -66,7 +66,9 @@ jobs:
 
       - name: Add Signer
         run: |
-          echo -e "${{ secrets.COMMON_PASSPHRASE }}\n" | docker trust signer add --key jeff.pub jeff sidwar/myapp:latest
+          ls
+          #echo -e "${{ secrets.COMMON_PASSPHRASE }}\n" | docker trust signer add --key jeff.pub jeff sidwar/myapp:latest
+          docker trust signer add --key jeff.pub jeff sidwar/myapp:latest
         env:
           DOCKER_CONTENT_TRUST: "1"
 
