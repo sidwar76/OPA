@@ -66,12 +66,7 @@ jobs:
 
       - name: Add Signer
         run: |
-          expect <<EOF
-          spawn docker trust signer add --key jeff.pub jeff sidwar/myapp:latest
-          expect "Enter passphrase for new signer key with ID jeff:"
-          send "${{ secrets.COMMON_PASSPHRASE }}\n"
-          expect "Successfully added signer: jeff"
-          EOF
+          echo -e "${{ secrets.COMMON_PASSPHRASE }}\n" | docker trust signer add --key jeff.pub jeff sidwar/myapp:latest
         env:
           DOCKER_CONTENT_TRUST: "1"
 
