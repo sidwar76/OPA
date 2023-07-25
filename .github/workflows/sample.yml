@@ -82,18 +82,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Pull Docker Image with Content Trust Enabled
+      - name: Set DOCKER_CONTENT_TRUST environment variable
         run: |
-          # Pull the Docker image from Docker Hub with content trust enabled
-          docker --content-trust=true pull sidwar/myapp:latest || echo "Image pull failed"
-          # Sleep for a few seconds to allow Docker Hub to synchronize
-          sleep 5
+          echo "DOCKER_CONTENT_TRUST=1" >> $GITHUB_ENV
 
+      - name: Pull Docker Image
+        run: |
+          # Pull the Docker image from Docker Hub
+          docker pull sidwar/myapp:latest
+          
       - name: Verify Signature
         run: |
           docker images
           # Check the signature information of the Docker image
-          docker inspect sidwar/myapp | jq '.[0].RepoDigests'
+          docker inspect sidwar/myapp:latest | jq '.[0].RepoDigests'
 
 
 
