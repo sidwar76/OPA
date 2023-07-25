@@ -38,10 +38,8 @@ jobs:
         uses: sigstore/cosign-installer@v2.0.0
 
       - name: Write signing key to disk
-        run: 'echo "$KEY" > cosign.key'
+        run: 'openssl genpkey -algorithm RSA -out cosign.key'
         shell: bash
-        env:
-          KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
 
       - name: Load the unencrypted private key
         run: cosign key load cosign.key
