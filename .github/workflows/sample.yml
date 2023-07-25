@@ -1,100 +1,52 @@
-name: Docker Content Trust Signing
+name: Docker CI
 
 on:
   push:
-    branches:
-      - master
-  pull_request:
+    branches: [ main ]
   workflow_dispatch:
+    
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: signedcontainer
 
 jobs:
-  sign_docker_image:
-    name: Sign and Push Docker Image
+  build:
+
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Install Docker CLI
-        run: |
-          # Install Docker CLI
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends expect
-      - name: Save Private Key to File
-        run: echo "${{ secrets.PRIVATE_KEY }}" > private_key.key
-        env:
-          PRIVATE_KEY: ${{ secrets.YOUR_PRIVATE_KEY_SECRET }}
-          
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@v1.6.0
 
-      - name: Copy Private Key to Docker Trust Directory
-        run: |
-          ls ~/.docker/
-          ls ~/.docker/trust/
-          cp private_key.key ~/.docker/trust/private/ # Assuming private_key.key is in the current working directory
-          ls 
-        # Add other settings and environment variables as needed
+      - name: Log into Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Load Private Key with Docker Trust
-        run: |
-          expect <<EOF
-          spawn docker trust key load ~/.docker/trust/private/private_key.key --name jeff
-          expect "Enter passphrase for encrypted key:"
-          send "${{ secrets.COMMON_PASSPHRASE }}\n"
-          expect "Successfully loaded signer: jeff"
-          EOF
-        env:
-          DOCKER_CONTENT_TRUST: "1"
-
-      - name: Install Docker CLI (Again with Trust Enabled)
-        run: |
-          # Install Docker CLI again with content trust enabled
-          curl -fsSL https://get.docker.com | sh
-
-      - name: Login to Docker Hub with Access Token
-        run: docker login -u sidwar -p ${{ secrets.DOCKER_ACCESS_TOKEN }}
-        env:
-          DOCKER_CONTENT_TRUST: "1"
-
-      - name: Build Docker Image
+      - name: Build and push Docker image
         run: docker build -t sidwar/myapp:latest .
-      - name: Check Content Trust (Notary) Configuration
-        run: |
-          # Check if Content Trust is enabled for the repository
-          repo_name="sidwar/myapp" # Replace with your repository name
-          trust_enabled=$(docker trust inspect --pretty "$repo_name" 2>&1)
-          if [[ $trust_enabled == *"unauthorized"* ]]; then
-            echo "Error: Content Trust (Notary) is not enabled for the repository."
-            exit 1
-          fi
-        env:
-          DOCKER_CLI_ACI: 1
-
-
-      - name: Add Signer
-        run: |
-          ls
-          #echo -e "${{ secrets.COMMON_PASSPHRASE }}\n" | docker trust signer add --key jeff.pub jeff sidwar/myapp:latest
-          docker trust signer add --key jeff.pub jeff sidwar/myapp:latest
-        env:
-          DOCKER_CONTENT_TRUST: "1"
-
-      - name: Sign Image
-        run: |
-          expect <<EOF
-          spawn docker trust sign sidwar/myapp:latest
-          expect "Enter passphrase for signer key with ID jeff:"
-          send "${{ secrets.COMMON_PASSPHRASE }}\n"
-          expect "Successfully signed docker.io/sidwar/myapp:latest"
-          EOF
-        env:
-          DOCKER_CONTENT_TRUST: "1"
-
-
-      - name: Push Docker Image
+      
+      - name: Push Docker image
         run: docker push sidwar/myapp:latest
+
+      
+      - name: cosign-installer
+        uses: sigstore/cosign-installer@v2.0.0
+        
+      - name: Write signing key to disk
+        run: 'echo "$KEY" > cosign.key'
+        shell: bash
         env:
-          DOCKER_CONTENT_TRUST: "1"
-
-
-
+          KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+      
+      - name: Sign the published Docker image
+        env:
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        run: cosign sign --key cosign.key sidwar/myapp:latest
