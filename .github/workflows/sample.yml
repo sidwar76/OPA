@@ -47,9 +47,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v1
-
       - name: Set up GPG keys
         run: |
           # Read the private key from the file
@@ -62,16 +59,31 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and sign Docker image
+      - name: Build Docker image
         run: |
-          # Create and use the Buildx builder
-          docker buildx create --use
           # Build the Docker image with multi-platform support and tag with GitHub SHA
-          docker buildx build --platform linux/amd64,linux/arm64 --push -t sidwar/myapp:${{ github.sha }} .
+          docker build --platform linux/amd64,linux/arm64 -t sidwar/myapp:${{ github.sha }} .
         env:
           # Set environment variables for the Docker build command
-          DOCKER_CLI_ACI: 1
           DOCKER_BUILDKIT: 1
+
+      - name: Sign Docker image
+        run: |
+          # Sign the Docker image with Docker Content Trust
+          docker push --sign-by 37800B1CA821E8DBA0E02C6609A3E699F359FC6B sidwar/myapp:${{ github.sha }}
+        env:
+          # Set environment variables for Docker Content Trust
+          DOCKER_CONTENT_TRUST: 1
+
+      - name: Verify Signed Image
+        run: |
+          # Verify the signature of the Docker image
+          docker trust inspect sidwar/myapp:${{ github.sha }}
+
+      - name: Push Docker image
+        run: |
+          # Push the signed Docker image to Docker Hub
+          docker push sidwar/myapp:${{ github.sha }}
 
   verify_signed_image:
     name: Verify Signed Image
