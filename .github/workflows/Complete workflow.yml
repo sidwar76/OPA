@@ -144,21 +144,21 @@ jobs:
           DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_USERNAME }}
 
 
-      - name: Import public key for verification
-        run: |
-          # Read the public key from the file and import it
-          gpg --import public_key.asc
+#       - name: Import public key for verification
+#         run: |
+#           # Read the public key from the file and import it
+#           gpg --import public_key.asc
 
-      - name: Generate Sign Image Report
-        run: |
-          # Use `docker trust inspect` to get the signing information for the built image
-          docker trust inspect sidwar/myapp:${{ github.sha }} > sign-image-report.txt
+#       - name: Generate Sign Image Report
+#         run: |
+#           # Use `docker trust inspect` to get the signing information for the built image
+#           docker trust inspect sidwar/myapp:${{ github.sha }} > sign-image-report.txt
 
-      - name: Upload Sign Image Report
-        uses: actions/upload-artifact@v2
-        with:
-          name: sign-image-report
-          path: ./sign-image-report.txt
+#       - name: Upload Sign Image Report
+#         uses: actions/upload-artifact@v2
+#         with:
+#           name: sign-image-report
+#           path: ./sign-image-report.txt
           
   vulnerability_scan:
     name: Vulnerability Scanning
