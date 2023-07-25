@@ -96,7 +96,7 @@ jobs:
         - name: Verify Signed Image
           run: |
             # Verify the signature of the Docker image using cosign
-            cosign verify -key public_key.asc docker.io/sidwar/myapp:83d528afa9f3fb6f01b83e2407f8ddc39d52487d
+            cosign verify --key public_key.asc docker.io/sidwar/myapp:83d528afa9f3fb6f01b83e2407f8ddc39d52487d
 
 
           
