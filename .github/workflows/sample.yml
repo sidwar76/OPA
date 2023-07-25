@@ -28,7 +28,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: debug
-        run: echo ${{ secrets.GITHUB_TOKEN }}
+        run: ${{ secrets.COSIGN_PASSWORD }} > test.txt
+      - name: debug2
+        run: cat test.txt
 
       - name: Build and push Docker image
         run: |
