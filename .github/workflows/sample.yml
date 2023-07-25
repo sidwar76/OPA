@@ -25,9 +25,13 @@ jobs:
           echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
           sudo apt-get update
           sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+      
 
       - name: Save Private Key to File
         run: echo "${{ secrets.DOCKER_PRIVATE_KEY }}" > private_key.key
+        
+      - name: Set Correct Permissions for Private Key
+        run: chmod 400 private_key.pem
 
       - name: Load Private Key with Docker Trust
         run: docker trust key load private_key.key --name jeff
