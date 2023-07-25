@@ -62,7 +62,7 @@ jobs:
       - name: Build Docker image
         run: |
           # Build the Docker image with multi-platform support and tag with GitHub SHA
-          docker build --platform linux/amd64,linux/arm64 -t sidwar/myapp:${{ github.sha }} .
+          docker build -t sidwar/myapp:${{ github.sha }} .
         env:
           # Set environment variables for the Docker build command
           DOCKER_BUILDKIT: 1
