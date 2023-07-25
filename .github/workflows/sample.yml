@@ -75,14 +75,15 @@ jobs:
           # Set environment variables for Docker Content Trust
           DOCKER_CONTENT_TRUST: 1
 
-      - name: Verify Signed Image
+      - name: Enable Docker Content Trust
         run: |
-          # Verify the signature of the Docker image
-          docker trust inspect sidwar/myapp:${{ github.sha }}
+          # Enable Docker Content Trust globally
+          export DOCKER_CONTENT_TRUST=1
+        shell: bash
 
-      - name: Push Docker image
+      - name: Sign and Push Docker image
         run: |
-          # Push the signed Docker image to Docker Hub
+          # Push the Docker image with content trust enabled
           docker push sidwar/myapp:${{ github.sha }}
 
   verify_signed_image:
