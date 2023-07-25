@@ -10,7 +10,7 @@ on:
 jobs:
   check_dockerfile:
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
@@ -41,6 +41,7 @@ jobs:
   build_and_scan:
     name: Build, Sign & Push Docker Image
     runs-on: ubuntu-latest
+    needs: check_dockerfile
 
     steps:
       - name: Checkout code
@@ -75,6 +76,7 @@ jobs:
   verify_signed_image:
     name: Verify Signed Image
     runs-on: ubuntu-latest
+    needs: build_and_scan
 
     steps:
       - name: Checkout code
