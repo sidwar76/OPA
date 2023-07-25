@@ -38,50 +38,37 @@ jobs:
           name: policy-report
           path: ./policy_report.txt
 
-  build_and_scan:
-    name: Build, Sign & Push Docker Image
+  push_to_registry:
+    name: Push Docker image to Docker hub
     runs-on: ubuntu-latest
-    needs: check_dockerfile
-
     steps:
-      - name: Checkout code
+      - name: Check out the repository
         uses: actions/checkout@v2
-
-      - name: Set up GPG keys
-        run: |
-          # Read the private key from the file
-          cat private_key.asc | gpg --import -
-        working-directory: ${{ github.workspace }}
-
-      - name: Log in to Docker Hub
+      - name: Login to DockerHub
         uses: docker/login-action@v1
         with:
+          registry: docker.io
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Build action image
+          # Use any good build command and be sure to tag the image correctly
+        run: IMAGE_TAG="docker.io/botsudo/action-docker-compose:latest" make docker-build
 
-      - name: Build Docker image
-        run: |
-          # Build the Docker image with multi-platform support and tag with GitHub SHA
-          docker build -t sidwar/myapp:${{ github.sha }} .
-        env:
-          # Set environment variables for the Docker build command
-          DOCKER_BUILDKIT: 1
-
-      - name: Enable Docker Content Trust
-        run: |
-          # Enable Docker Content Trust globally
-          export DOCKER_CONTENT_TRUST=1
-        shell: bash
-
-      - name: Sign and Push Docker image
-        run: |
-          # Push the Docker image with content trust enabled
-          docker push sidwar/myapp:${{ github.sha }}
+      - name: Sign and push docker image
+        uses: sudo-bot/action-docker-sign@latest
+        with:
+          image-ref: "docker.io/botsudo/action-docker-compose:latest"
+            # Example: 51f9a39f3db4ddaaf9174fca69f41fb01a04a4dfb5125ef115feecb93d19efa6
+          private-key-id: "${{ secrets.DOCKER_PRIVATE_KEY_ID }}"
+            # The contents from: ~/.docker/trust/private/51f9a39f3db4ddaaf9174fca69f41fb01a04a4dfb5125ef115feecb93d19efa6.key)
+          private-key: ${{ secrets.DOCKER_PRIVATE_KEY }}
+            # Example: myPassw0rdChangeMeReplaceMe
+          private-key-passphrase: ''
 
   verify_signed_image:
     name: Verify Signed Image
     runs-on: ubuntu-latest
-    needs: build_and_scan
+
 
     steps:
       - name: Checkout code
