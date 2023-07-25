@@ -52,12 +52,12 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Build action image
           # Use any good build command and be sure to tag the image correctly
-        run: IMAGE_TAG="docker.io/botsudo/action-docker-compose:latest" make docker-build
+        run: docker build -t sidwar/myapp:${{ github.sha }} .
 
       - name: Sign and push docker image
         uses: sudo-bot/action-docker-sign@latest
         with:
-          image-ref: "docker.io/botsudo/action-docker-compose:latest"
+          image-ref: "sidwar/myapp:${{ github.sha }}"
             # Example: 51f9a39f3db4ddaaf9174fca69f41fb01a04a4dfb5125ef115feecb93d19efa6
           private-key-id: "${{ secrets.DOCKER_PRIVATE_KEY_ID }}"
             # The contents from: ~/.docker/trust/private/51f9a39f3db4ddaaf9174fca69f41fb01a04a4dfb5125ef115feecb93d19efa6.key)
