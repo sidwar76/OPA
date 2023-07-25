@@ -34,7 +34,13 @@ jobs:
         run: chmod 400 private_key.key
 
       - name: Load Private Key with Docker Trust
-        run: docker trust key load private_key.key --name jeff
+        run: |
+          expect <<EOF
+          spawn docker trust key load private_key.key --name jeff
+          expect "Enter passphrase for encrypted key:"
+          send "${{ secrets.COMMON_PASSPHRASE }}\n"
+          expect "Successfully loaded signer: jeff"
+          EOF
         env:
           DOCKER_CONTENT_TRUST: "1"
 
