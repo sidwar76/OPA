@@ -67,14 +67,6 @@ jobs:
           # Set environment variables for the Docker build command
           DOCKER_BUILDKIT: 1
 
-      - name: Sign Docker image
-        run: |
-          # Sign the Docker image with Docker Content Trust
-          docker push --sign-by 37800B1CA821E8DBA0E02C6609A3E699F359FC6B sidwar/myapp:${{ github.sha }}
-        env:
-          # Set environment variables for Docker Content Trust
-          DOCKER_CONTENT_TRUST: 1
-
       - name: Enable Docker Content Trust
         run: |
           # Enable Docker Content Trust globally
