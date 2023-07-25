@@ -1,9 +1,8 @@
 name: work
 on:
   push:
-    tags:
-       # Only the tag named latest
-       - 'latest'
+    branches:
+      - master
 
 jobs:
   push_to_registry:
