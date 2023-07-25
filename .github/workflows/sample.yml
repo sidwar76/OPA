@@ -45,8 +45,8 @@ jobs:
 #       - name: Write signing key to disk
 #         run: openssl genpkey -algorithm RSA -out cosign.key
 
-      - name: Load the unencrypted private key
-        run: cosign key load cosign.key
+#       - name: Load the unencrypted private key
+#         run: cosign key load cosign.key
       
       - name: Sign the published Docker image
         env:
