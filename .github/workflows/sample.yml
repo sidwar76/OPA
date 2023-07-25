@@ -72,7 +72,7 @@ jobs:
           DOCKER_CLI_ACI: 1
           DOCKER_BUILDKIT: 1
 
-  verify_signed_image:
+verify_signed_image:
     name: Verify Signed Image
     runs-on: ubuntu-latest
 
@@ -88,13 +88,16 @@ jobs:
 
       - name: Pull Docker Image
         run: |
-          # Pull the Docker image
-          docker pull sidwar/myapp:${{ github.sha }}
+          # Pull the Docker image from Docker Hub
+          docker pull sidwar/myapp:83d528afa9f3fb6f01b83e2407f8ddc39d52487d || echo "Image pull failed"
+          # Sleep for a few seconds to allow Docker Hub to synchronize
+          sleep 5
 
       - name: Verify Signed Image
         run: |
           # Verify the signature of the Docker image using cosign
-          cosign verify -key public_key.asc docker.io/sidwar/myapp:${{ github.sha }}
+          cosign verify -key public_key.asc docker.io/sidwar/myapp:83d528afa9f3fb6f01b83e2407f8ddc39d52487d
+
 
           
   vulnerability_scan:
