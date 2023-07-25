@@ -19,9 +19,8 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build action image
-        # Use any good build command and be sure to tag the image correctly
-        run: IMAGE_TAG="sidwar/myapp:latest" make docker-build
+      - name: Build Docker image
+        run: docker build -t sidwar/myapp:latest .
 
       - name: Sign and push docker image
         uses: sudo-bot/action-docker-sign@latest
