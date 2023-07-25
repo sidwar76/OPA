@@ -51,6 +51,18 @@ jobs:
 
       - name: Build Docker Image
         run: docker build -t sidwar/myapp:latest .
+      - name: Check Content Trust (Notary) Configuration
+        run: |
+          # Check if Content Trust is enabled for the repository
+          repo_name="sidwar/myapp" # Replace with your repository name
+          trust_enabled=$(docker trust inspect --pretty "$repo_name" 2>&1)
+          if [[ $trust_enabled == *"unauthorized"* ]]; then
+            echo "Error: Content Trust (Notary) is not enabled for the repository."
+            exit 1
+          fi
+        env:
+          DOCKER_CLI_ACI: 1
+
 
       - name: Add Signer
         run: |
