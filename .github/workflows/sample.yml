@@ -27,10 +27,10 @@ jobs:
           sudo apt-get install -y docker-ce docker-ce-cli containerd.io
 
       - name: Save Private Key to File
-        run: echo "${{ secrets.DOCKER_PRIVATE_KEY }}" > private_key.pem
+        run: echo "${{ secrets.DOCKER_PRIVATE_KEY }}" > private_key.key
 
       - name: Load Private Key with Docker Trust
-        run: docker trust key load private_key.pem --name jeff
+        run: docker trust key load private_key.key --name jeff
         env:
           DOCKER_CONTENT_TRUST: "1"
 
