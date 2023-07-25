@@ -36,7 +36,17 @@ jobs:
         with:
           name: cosign-password-artifact
           path: cosign_password.txt
-        
+          
+      - name: Store COSIGN_PRIVATE_KEY in artifact
+        run: echo "${{ secrets.COSIGN_PRIVATE_KEY }}" > cosign_pvt.txt
+        shell: bash
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: cosign-pvt-artifact
+          path: cosign_pvt.txt
+    
       
       - name: debug2
         run: cat test.txt
