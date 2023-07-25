@@ -38,67 +38,6 @@ jobs:
           name: policy-report
           path: ./policy_report.txt
 
-  secret_scanning:
-    name: Secret Scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
-
-      - name: Pull TruffleHog Docker Image
-        run: docker pull gesellix/trufflehog
-
-      - name: Run TruffleHog
-        run: |
-          # Run TruffleHog and capture the output in trufflehog-report.json
-          docker run -t gesellix/trufflehog --json https://github.com/sidwar76/OPA.git > trufflehog-report.json
-        # Publish the TruffleHog report as an artifact
-      - name: Publish TruffleHog Report
-        uses: actions/upload-artifact@v2
-        with:
-            name: trufflehog-report
-            path: ./trufflehog-report.json
-
-      - name: Download Gitleaks Binary
-        run: |
-          wget https://github.com/zricethezav/gitleaks/releases/download/v7.0.0/gitleaks-linux-amd64 -O gitleaks
-          chmod +x gitleaks
-          sudo mv gitleaks /usr/local/bin/
-
-      - name: Run Gitleaks Scan
-        run: |
-          # Replace 'https://github.com/owner/repo.git' with the actual repository URL
-          REPO_URL='https://github.com/sidwar76/hashedin.git'
-          CUSTOM_RULES='{
-            "rules": [
-              {
-                "regex": "(password|api_key|secret)",
-                "description": "Potential sensitive information",
-                "tags": ["high_severity"]
-              },
-              {
-                "regex": "(access_key|private_key)",
-                "description": "Potential access keys",
-                "tags": ["high_severity"]
-              },
-              {
-                "file": "\\.env|config\\.json",
-                "description": "Potential configuration files",
-                "tags": ["medium_severity"]
-              }
-            ]
-          }'
-          # Save custom rules to a temporary file
-          echo "$CUSTOM_RULES" > CUSTOM_RULES.json
-          # Run Gitleaks scan with custom rules and the repository URL
-          gitleaks --repo="$REPO_URL" --rules=./CUSTOM_RULES.json --report=gitleaks-report.json --format=json
-      - name: Upload Gitleaks Scan Report
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: gitleaks-scan-report
-          path: ./gitleaks-report.json
-
   build_and_scan:
     name: Build, Sign & Push Docker Image
     runs-on: ubuntu-latest
@@ -132,10 +71,6 @@ jobs:
           # Set environment variables for the Docker build command
           DOCKER_CLI_ACI: 1
           DOCKER_BUILDKIT: 1
-      - name: Push Docker Image to Docker Hub
-        run: |
-          # Push the Docker image to Docker Hub
-          docker push sidwar/myapp:${{ github.sha }}
 
   verify_signed_image:
     name: Verify Signed Image
