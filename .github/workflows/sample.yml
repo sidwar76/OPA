@@ -2,9 +2,8 @@ name: Docker CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   workflow_dispatch:
-    
 
 jobs:
   build:
@@ -28,18 +27,18 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push Docker image
-        run: docker build -t sidwar/myapp:latest .
+        run: |
+          docker build -t sidwar/myapp:latest .
+          docker push sidwar/myapp:latest
       
-      - name: Push Docker image
-        run: docker push sidwar/myapp:latest
-
-      
-      - name: cosign-installer
-        uses: sigstore/cosign-installer@v2.0.0
+      - name: Install cosign
+        run: |
+          curl -LO https://github.com/sigstore/cosign/releases/download/v1.2.1/cosign-linux-amd64
+          chmod +x cosign-linux-amd64
+          sudo mv cosign-linux-amd64 /usr/local/bin/cosign
 
       - name: Write signing key to disk
-        run: 'openssl genpkey -algorithm RSA -out cosign.key'
-        shell: bash
+        run: openssl genpkey -algorithm RSA -out cosign.key
 
       - name: Load the unencrypted private key
         run: cosign key load cosign.key
@@ -48,3 +47,4 @@ jobs:
         env:
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
         run: cosign sign --key cosign.key sidwar/myapp:latest
+
