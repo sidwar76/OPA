@@ -21,12 +21,10 @@ jobs:
           # Install Docker CLI
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends expect
-      
-      
 
       - name: Save Private Key to File
         run: echo "${{ secrets.DOCKER_PRIVATE_KEY }}" > private_key.key
-        
+
       - name: Set Correct Permissions for Private Key
         run: chmod 400 private_key.key
 
@@ -40,10 +38,16 @@ jobs:
           EOF
         env:
           DOCKER_CONTENT_TRUST: "1"
+
       - name: Install Docker CLI (Again with Trust Enabled)
         run: |
           # Install Docker CLI again with content trust enabled
           curl -fsSL https://get.docker.com | sh
+
+      - name: Login to Docker Hub with Access Token
+        run: docker login -u sidwar -p ${{ secrets.DOCKER_ACCESS_TOKEN }}
+        env:
+          DOCKER_CONTENT_TRUST: "1"
 
       - name: Build Docker Image
         run: docker build -t sidwar/myapp:latest .
@@ -67,5 +71,6 @@ jobs:
         run: docker push sidwar/myapp:latest
         env:
           DOCKER_CONTENT_TRUST: "1"
+
 
 
