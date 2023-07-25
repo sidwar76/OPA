@@ -21,17 +21,21 @@ jobs:
           # Install Docker CLI
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends expect
+      - name: Save Private Key to File
+        run: echo "${{ secrets.PRIVATE_KEY }}" > private_key.key
+        env:
+          PRIVATE_KEY: ${{ secrets.YOUR_PRIVATE_KEY_SECRET }}
 
       - name: Copy Private Key to Docker Trust Directory
         run: |
           mkdir -p ~/.docker/trust/private
-          cp private_key.key ~/.docker/trust/private/private_key.pem  # Assuming private_key.key is in the current working directory
+          cp private_key.key ~/.docker/trust/private/ # Assuming private_key.key is in the current working directory
         # Add other settings and environment variables as needed
 
       - name: Load Private Key with Docker Trust
         run: |
           expect <<EOF
-          spawn docker trust key load ~/.docker/trust/private/private_key.pem --name jeff
+          spawn docker trust key load ~/.docker/trust/private/private_key.key --name jeff
           expect "Enter passphrase for encrypted key:"
           send "${{ secrets.COMMON_PASSPHRASE }}\n"
           expect "Successfully loaded signer: jeff"
