@@ -132,6 +132,10 @@ jobs:
           # Set environment variables for the Docker build command
           DOCKER_CLI_ACI: 1
           DOCKER_BUILDKIT: 1
+      - name: Push Docker Image to Docker Hub
+        run: |
+          # Push the Docker image to Docker Hub
+          docker push sidwar/myapp:${{ github.sha }}
 
   verify_signed_image:
     name: Verify Signed Image
