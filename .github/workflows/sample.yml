@@ -29,10 +29,8 @@ jobs:
 
       - name: Copy Private Key to Docker Trust Directory
         run: |
-          docker trust key list
           ls ~/.docker/
           ls ~/.docker/trust/
-          mkdir -p ~/.docker/trust/private
           cp private_key.key ~/.docker/trust/private/ # Assuming private_key.key is in the current working directory
           ls 
         # Add other settings and environment variables as needed
