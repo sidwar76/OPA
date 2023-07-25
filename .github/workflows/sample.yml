@@ -44,12 +44,22 @@ jobs:
         env:
           KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
           
+      - name: Install expect
+        run: sudo apt-get update && sudo apt-get install -y expect
+        
       - name: Decrypt the private key
         env:
           COSIGN_PASSPHRASE: ${{ secrets.COSIGN_PASSWORD }}
         run: |
-          openssl rsa -in cosign.key -out cosign.key.decrypted -passin env:COSIGN_PASSPHRASE
-          mv cosign.key.decrypted cosign.key
+          expect <<EOF
+          spawn openssl rsa -in cosign.key -out cosign.key.decrypted -passin env:COSIGN_PASSPHRASE
+          expect "Enter pass phrase for"
+          send "$env(COSIGN_PASSPHRASE)\n"
+          expect "writing RSA key"
+          EOF
+        shell: bash
+
+
       
       - name: Sign the published Docker image
         env:
