@@ -91,8 +91,9 @@ jobs:
 
       - name: Verify Signature
         run: |
+          docker images
           # Check the signature information of the Docker image
-          docker inspect sidwar/myapp:latest | jq '.[0].RepoDigests'
+          docker inspect sidwar/myapp | jq '.[0].RepoDigests'
 
 
 
