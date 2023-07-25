@@ -26,7 +26,9 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: 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
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: debug
+        run: echo ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
         run: |
