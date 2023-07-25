@@ -71,6 +71,7 @@ jobs:
           # Set environment variables for the Docker build command
           DOCKER_CLI_ACI: 1
           DOCKER_BUILDKIT: 1
+
   verify_signed_image:
     name: Verify Signed Image
     runs-on: ubuntu-latest
@@ -82,16 +83,14 @@ jobs:
       - name: Pull Docker Image with Content Trust Enabled
         run: |
           # Pull the Docker image from Docker Hub with content trust enabled
-          docker --content-trust=true pull sidwar/myapp:83d528afa9f3fb6f01b83e2407f8ddc39d52487d || echo "Image pull failed"
+          docker --content-trust=true pull sidwar/myapp:latest || echo "Image pull failed"
           # Sleep for a few seconds to allow Docker Hub to synchronize
           sleep 5
 
       - name: Verify Signature
         run: |
           # Check the signature information of the Docker image
-          docker inspect sidwar/myapp:83d528afa9f3fb6f01b83e2407f8ddc39d52487d | jq '.[0].RepoDigests'
-
-
+          docker inspect sidwar/myapp:latest | jq '.[0].RepoDigests'
 
 
 
