@@ -52,6 +52,9 @@ def check_unused_dependencies(dockerfile_data):
     # List of packages to ignore from being considered as unused
     ignored_packages = ["curl", "wget"]  # Add more if needed
 
+    # List of flags to ignore from being considered as unused
+    ignored_flags = ["--no-cache"]  # Add more if needed
+
     # List of packages that are installed and used in the Dockerfile
     used_packages = set()
 
@@ -59,7 +62,8 @@ def check_unused_dependencies(dockerfile_data):
     for step in dockerfile_data:
         if step["cmd"] == "RUN" and "apk add" in step["value"][0]:
             packages = step["value"][0].replace("apk add", "").strip()
-            used_packages.update(packages.split())
+            packages = [pkg.strip() for pkg in packages.split() if pkg.strip() not in ignored_flags]
+            used_packages.update(packages)
 
     # Find the packages declared to be removed (if any)
     for step in dockerfile_data:
