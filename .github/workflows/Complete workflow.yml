@@ -39,146 +39,42 @@ jobs:
           name: policy-report
           path: ./policy_report.txt
 
-  secret_scanning:
-    name: secret Scan
+  push_to_registry:
+    name: Build, Sign & Push
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
+      - name: Check out the repository
         uses: actions/checkout@v2
 
-      - name: pull TruffleHog
-        run: docker pull gesellix/trufflehog
-
-      - name: Run TruffleHog
+      - name: Install cosign
         run: |
-          # Run TruffleHog and capture the output in trufflehog-report.json
-          docker run -t gesellix/trufflehog --json https://github.com/sidwar76/OPA.git > trufflehog-report.json
-        # Publish the TruffleHog report as an artifact
-      - name: Publish TruffleHog Report
-        uses: actions/upload-artifact@v2
-        with:
-            name: trufflehog-report
-            path: ./trufflehog-report.json
-      - name: Download Gitleaks Binary
-        run: |
-          wget https://github.com/gitleaks/gitleaks/releases/download/v8.17.0/gitleaks_8.17.0_linux_x64.tar.gz
-          tar -xzf gitleaks_8.17.0_linux_x64.tar.gz -C /tmp
-          chmod +x /tmp/gitleaks
-      - name: Move Gitleaks Binary to /usr/local/bin
-        run: sudo mv /tmp/gitleaks /usr/local/bin/
+          curl -L https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64 -o /tmp/cosign
+          chmod +x /tmp/cosign
+          sudo mv /tmp/cosign /usr/local/bin/cosign
 
-      - name: Debug
-        run: ls /usr/local/bin/
-      - name: help
-        run: gitleaks --help
-
-      - name: Run Gitleaks Scan
-        run: |
-          # Replace 'https://github.com/owner/repo.git' with the actual repository URL
-          REPO_URL='https://github.com/sidwar76/hashedin.git'
-          CUSTOM_RULES='{
-            "rules": [
-              {
-                "regex": "(password|api_key|secret)",
-                "description": "Potential sensitive information",
-                "tags": ["high_severity"]
-              },
-              {
-                "regex": "(access_key|private_key)",
-                "description": "Potential access keys",
-                "tags": ["high_severity"]
-              },
-              {
-                "file": "\\.env|config\\.json",
-                "description": "Potential configuration files",
-                "tags": ["medium_severity"]
-              }
-            ]
-          }'
-          # Save custom rules to a temporary file
-          echo "$CUSTOM_RULES" > CUSTOM_RULES.json
-          # Run Gitleaks scan with custom rules and the repository URL
-          gitleaks detect -c gitleaks.toml --report-path gitleaks-report.json -f json 
-      - name: Upload Gitleaks Scan Report
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: gitleaks-scan-report
-          path: gitleaks-report.json
-          
-
-
-  build_and_scan:
-    name: Build, Sign & Push Docker Image
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v1
-
-      - name: Set up GPG keys
-        run: |
-          # Read the private key from the file
-          cat private_key.asc | gpg --import -
-        working-directory: ${{ github.workspace }}
-
-      - name: Log in to Docker Hub
+      - name: Login to DockerHub
         uses: docker/login-action@v1
         with:
+          registry: docker.io
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and sign Docker image
-        run: |
-          # Create and use the Buildx builder
-          docker buildx create --use
-          # Build the Docker image with multi-platform support and tag with GitHub SHA
-          docker buildx build --platform linux/amd64,linux/arm64 --push -t sidwar/myapp:${{ github.sha }} .
-        env:
-          # Set environment variables for the Docker build command
-          DOCKER_CLI_ACI: 1
-          DOCKER_BUILDKIT: 1
-          DOCKER_CONTENT_TRUST: 1
-          DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      - name: Build Docker image
+        run: docker build -t sidwar/myapp:latest .
 
-
-  verify_signed_image:
-    name: Verify Signed Image
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Setup GPG keys for verification
-        run: |
-          # Read the GPG public key from the file and import it
-          gpg --import public_key.asc
-        working-directory: ${{ github.workspace }}
-
-      - name: Pull Docker Image
-        run: |
-          # Pull the Docker image using Docker CLI with content trust enabled
-          export DOCKER_CONTENT_TRUST=1
-          docker pull sidwar/myapp:${{ github.sha }}
-        env:
-          # Set the environment variable for Docker Content Trust
-          DOCKER_CONTENT_TRUST: 1
-
-      - name: Verify Signed Image
-        run: |
-          # Verify the signature of the Docker image using GPG keys
-          docker trust verify sidwar/myapp:${{ github.sha }}
-
-
-      - name: Upload Sign Image Report
-        uses: actions/upload-artifact@v2
+      - name: Sign and push docker image
+        uses: sudo-bot/action-docker-sign@latest
         with:
-          name: sign-image-report
-          path: ./sign-image-report.txt
+          image-ref: "sidwar/myapp:latest"
+          private-key-id: "${{ secrets.DOCKER_PRIVATE_KEY_ID }}"
+          private-key: ${{ secrets.DOCKER_PRIVATE_KEY }}
+          private-key-passphrase: ${{ secrets.COMMON_PASSPHRASE }}
+          
+          
+          
+      - name: Verify the signed Docker image
+        run: docker trust inspect --pretty sidwar/myapp:latest
+
           
   vulnerability_scan:
     name: Vulnerability Scanning
