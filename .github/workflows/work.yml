@@ -42,4 +42,5 @@ jobs:
 #           DOCKER_PUBLIC_KEY: ${{ secrets.DOCKER_PUBLIC_KEY }}
 
       - name: Verify the signed Docker image
-        run: cosign verify docker.io/sidwar/myapp:latest
+        run: docker trust inspect --pretty sidwar/myapp:latest
+
