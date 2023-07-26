@@ -15,7 +15,7 @@ ENV API_KEY=your_api_key
 ENV PASSWORD=your_password
 
 # Add a file from a remote URL (will trigger the ADD issue)
-ADD https://example.com/remote-file.txt /app/
+ADD https://github.com/moby/moby/blob/master/internal/mod/mod.go /app/
 
 # Use COPY instead of ADD for local file
 COPY gitleaks.toml /app/
