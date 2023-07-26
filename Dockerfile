@@ -18,7 +18,7 @@ ENV PASSWORD=your_password
 ADD https://example.com/remote-file.txt /app/
 
 # Use COPY instead of ADD for local file
-COPY local-file.txt /app/
+COPY gitleaks.toml /app/
 
 # Unnecessary command to install 'tree'
 RUN apk add --no-cache tree && \
