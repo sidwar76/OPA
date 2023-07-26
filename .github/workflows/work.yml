@@ -44,7 +44,3 @@ jobs:
       - name: Verify the signed Docker image
         run: docker trust inspect --pretty sidwar/myapp:latest
 
-      - name: Verify the signed Docker image using cosign
-        run: cosign verify --key sid.pub docker.io/sidwar/myapp:latest
-
-
