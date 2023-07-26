@@ -36,11 +36,15 @@ jobs:
           private-key: ${{ secrets.DOCKER_PRIVATE_KEY }}
           private-key-passphrase: ${{ secrets.COMMON_PASSPHRASE }}
           
-#       - name: Save public key to a file
-#         run: echo "$DOCKER_PUBLIC_KEY" > public_key.pem
-#         env:
-#           DOCKER_PUBLIC_KEY: ${{ secrets.DOCKER_PUBLIC_KEY }}
+      - name: Save public key to a file
+        run: echo "$DOCKER_PUBLIC_KEY" > sid.pub
+        env:
+          DOCKER_PUBLIC_KEY: ${{ secrets.DOCKER_PUBLIC_KEY }}
 
       - name: Verify the signed Docker image
         run: docker trust inspect --pretty sidwar/myapp:latest
+
+      - name: Verify the signed Docker image using cosign
+        run: cosign verify --key sid.pub docker.io/***/myapp:latest
+
 
