@@ -48,35 +48,6 @@ def check_non_root_user(dockerfile_data):
             return "Using 'root' as the container user is not recommended. Please use a non-root user instead."
     return None
 
-def check_unused_dependencies(dockerfile_data):
-    # List of packages to ignore from being considered as unused
-    ignored_packages = ["curl", "wget"]  # Add more if needed
-
-    # List of flags to ignore from being considered as unused
-    ignored_flags = ["--no-cache"]  # Add more if needed
-
-    # List of packages that are installed and used in the Dockerfile
-    used_packages = set()
-
-    # Find the installed packages
-    for step in dockerfile_data:
-        if step["cmd"] == "RUN" and "apk add" in step["value"][0]:
-            packages = step["value"][0].replace("apk add", "").strip()
-            packages = [pkg.strip() for pkg in packages.split() if pkg.strip() not in ignored_flags]
-            used_packages.update(packages)
-
-    # Find the packages declared to be removed (if any)
-    for step in dockerfile_data:
-        if step["cmd"] == "RUN" and "apk del" in step["value"][0]:
-            removed_packages = step["value"][0].replace("apk del", "").strip()
-            removed_packages = set(removed_packages.split())
-            used_packages.difference_update(removed_packages)
-
-    # Check for unused packages
-    unused_packages = used_packages.difference(ignored_packages)
-    if unused_packages:
-        return f"Unused dependencies found in the Dockerfile: {', '.join(unused_packages)}"
-    return None
 
 def check_use_copy(dockerfile_data):
     for step in dockerfile_data:
@@ -114,9 +85,6 @@ def main():
     if non_root_user_violation:
         violations.append(non_root_user_violation)
 
-    unused_dependencies_violation = check_unused_dependencies(dockerfile_data)
-    if unused_dependencies_violation:
-        violations.append(unused_dependencies_violation)
 
     use_copy_violation = check_use_copy(dockerfile_data)
     if use_copy_violation:
