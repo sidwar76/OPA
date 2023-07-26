@@ -2,9 +2,15 @@ import json
 
 def check_base_image(dockerfile_data):
     for step in dockerfile_data:
-        if step["cmd"] == "FROM" and step["value"][0] == "alpine:3.11":
-            return "Using an outdated base image (alpine:3.11) is not allowed"
+        if step["cmd"] == "FROM":
+            base_image = step["value"][0]
+            if "alpine:" in base_image:
+                # Extract the version number from the base image
+                version = base_image.split(":")[1]
+                if version < "3.11":
+                    return f"Using an outdated base image ({base_image}) is not allowed"
     return None
+
 
 def check_root_password(dockerfile_data):
     for step in dockerfile_data:
