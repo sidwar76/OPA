@@ -71,9 +71,12 @@ jobs:
           private-key: ${{ secrets.DOCKER_PRIVATE_KEY }}
           private-key-passphrase: ${{ secrets.COMMON_PASSPHRASE }}
           
-          
-          
-      - name: Verify the signed Docker image
+  verify_image:
+      runs-on: ubuntu-latest
+      name: Inspect signature 
+      steps:
+
+      - name: Verify Docker signature
         run: docker trust inspect --pretty sidwar/myapp:latest
 
           
@@ -92,8 +95,9 @@ jobs:
       - name: Vulnerability Scanning
         run: |
           # Use Trivy for vulnerability scanning and capture the output in trivy-report.json
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/root/ aquasec/trivy:latest image --vuln-type="os,library" sidwar/myapp:${{ github.sha }} > trivy-report.json
-        # Publish the vulnerability scanning report as an artifact
+          #docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/root/ aquasec/trivy:latest image --vuln-type="os,library" sidwar/myapp:${{ github.sha }} > trivy-report.json
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/root/ aquasec/trivy:latest image sidwar/myapp:${{ github.sha }} > trivy-report.json
+# Publish the vulnerability scanning report as an artifact
       - name: Publish Vulnerability Scanning Report
         uses: actions/upload-artifact@v2
         with:
