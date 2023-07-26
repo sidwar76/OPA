@@ -1,5 +1,3 @@
-# Sample Dockerfile with security issues
-
 # Use an outdated and vulnerable base image
 FROM alpine:3.11
 
@@ -7,7 +5,7 @@ FROM alpine:3.11
 RUN echo "root:insecurepassword" | chpasswd
 
 # Install packages as root (should use a non-root user for security)
-RUN apk add --no-cache curl
+RUN apk add --no-cache curl jq  # jq is the unused package
 
 # Expose an unnecessary port (not required for this example)
 EXPOSE 80
@@ -15,3 +13,13 @@ EXPOSE 80
 # Set environment variables with sensitive information
 ENV API_KEY=your_api_key
 ENV PASSWORD=your_password
+
+# Add a file from a remote URL (will trigger the ADD issue)
+ADD https://example.com/remote-file.txt /app/
+
+# Use COPY instead of ADD for local file
+COPY local-file.txt /app/
+
+# Unnecessary command to install 'tree'
+RUN apk add --no-cache tree && \
+    apk del --no-cache tree  # Uninstalling immediately, but still an unused package
