@@ -107,20 +107,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Install DockerSlim
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq
-          download_link=$(curl -s https://api.github.com/repos/docker-slim/docker-slim/releases/latest \
-          | jq -r ".assets[] | select(.name | test(\"docker-slim_linux_x64\")) | .browser_download_url")
-          curl -L $download_link -o /tmp/docker-slim
-          chmod +x /tmp/docker-slim
-          sudo mv /tmp/docker-slim /usr/local/bin
-
-
       - name: Optimize Docker image
         run: |
           docker pull sidwar/myapp:latest
-          docker-slim build --http-probe=false sidwar/myapp:latest
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock dslim/docker-slim build --http-probe=false sidwar/myapp:latest
           docker tag sidwar/myapp.slim:latest sidwar/myapp:slim
           docker push sidwar/myapp:slim
