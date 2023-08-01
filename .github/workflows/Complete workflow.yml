@@ -111,5 +111,12 @@ jobs:
         run: |
           docker pull sidwar/myapp:latest
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock dslim/docker-slim build --http-probe=false sidwar/myapp:latest
+
+      - name: Log in to DockerHub
+        run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Tag and Push Docker image
+        run: |
           docker tag sidwar/myapp.slim:latest sidwar/myapp:slim
           docker push sidwar/myapp:slim
+
