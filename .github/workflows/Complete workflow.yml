@@ -114,9 +114,9 @@ jobs:
           | cut -d : -f 2,3 \
           | tr -d \" \
           | wget -qi - -O /tmp/docker-slim.tar.gz
+          file /tmp/docker-slim.tar.gz
           tar xvf /tmp/docker-slim.tar.gz -C /tmp
           sudo mv /tmp/docker-slim /usr/local/bin
-
 
       - name: Optimize Docker image
         run: |
