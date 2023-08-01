@@ -109,14 +109,14 @@ jobs:
 
       - name: Install DockerSlim
         run: |
-          curl -s https://api.github.com/repos/docker-slim/docker-slim/releases/latest \
-          | grep "browser_download_url.*docker-slim_linux_x64.tar.gz" \
-          | cut -d : -f 2,3 \
-          | tr -d \" \
-          | wget -qi - -O /tmp/docker-slim.tar.gz
-          file /tmp/docker-slim.tar.gz
-          tar xvf /tmp/docker-slim.tar.gz -C /tmp
+          sudo apt-get update
+          sudo apt-get install -y jq
+          download_link=$(curl -s https://api.github.com/repos/docker-slim/docker-slim/releases/latest \
+          | jq -r ".assets[] | select(.name | test(\"docker-slim_linux_x64\")) | .browser_download_url")
+          curl -L $download_link -o /tmp/docker-slim
+          chmod +x /tmp/docker-slim
           sudo mv /tmp/docker-slim /usr/local/bin
+
 
       - name: Optimize Docker image
         run: |
