@@ -64,7 +64,7 @@ jobs:
       - name: Sign and push docker image
         uses: sudo-bot/action-docker-sign@latest
         with:
-          image-ref: "sidwar/myapp:latest"
+          image-ref: "sidwar/myapp:${{ github.sha }}"
           private-key-id: "${{ secrets.DOCKER_PRIVATE_KEY_ID }}"
           private-key: ${{ secrets.DOCKER_PRIVATE_KEY }}
           private-key-passphrase: ${{ secrets.COMMON_PASSPHRASE }}
