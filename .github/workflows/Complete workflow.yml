@@ -80,7 +80,7 @@ jobs:
   vulnerability_scan:
     name: Vulnerability Scanning
     runs-on: ubuntu-latest
-    needs: push_to_registry
+    needs: verify_image
 
     steps:
       - name: Checkout code
