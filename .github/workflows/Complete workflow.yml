@@ -59,7 +59,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build Docker image
-        run: docker build -t sidwar/myapp:latest .
+        run: docker build -t sidwar/myapp:${{ github.sha }} .
 
       - name: Sign and push docker image
         uses: sudo-bot/action-docker-sign@latest
@@ -75,7 +75,7 @@ jobs:
     needs: push_to_registry
     steps:
     - name: Verify Docker signature
-      run: docker trust inspect --pretty sidwar/myapp:latest
+      run: docker trust inspect --pretty sidwar/myapp:${{ github.sha }}
           
   vulnerability_scan:
     name: Vulnerability Scanning
@@ -113,13 +113,13 @@ jobs:
       - name: Optimize Docker image
         run: |
           docker pull sidwar/myapp:latest
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock dslim/docker-slim build --http-probe=false sidwar/myapp:latest 
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock dslim/docker-slim build --http-probe=false sidwar/myapp:${{ github.sha }}
 
       - name: Log in to DockerHub
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
       - name: Tag and Push Docker image
         run: |
-          docker tag sidwar/myapp.slim:latest sidwar/myapp:slim
-          docker push sidwar/myapp:slim
+          docker tag sidwar/myapp.slim:latest sidwar/myapp:slim ${{ github.sha }}
+          docker push sidwar/myapp:slim myapp:${{ github.sha }}
 
