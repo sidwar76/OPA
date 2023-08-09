@@ -111,18 +111,6 @@ jobs:
         run: |
           docker pull sidwar/myapp:latest
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock dslim/docker-slim build --http-probe=false sidwar/myapp:latest 
-      - name: Find slim report
-        run: pwd
-
-      # - name: Copy slim report
-      #   run: |
-      #     docker cp dockerslim-container:/slim.report.json slim.report.json
-
-      # - name: Upload report
-      #   uses: actions/upload-artifact@v2
-      #   with:
-      #     name: docker-slim-report
-      #     path: slim.report.json
 
       - name: Log in to DockerHub
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
