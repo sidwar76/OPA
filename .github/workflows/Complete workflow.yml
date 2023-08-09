@@ -90,7 +90,7 @@ jobs:
         uses: docker/setup-buildx-action@v1
         
       - name: Debug
-        run : docker images 
+        run : docker pull sidwar/myapp:${{ github.sha }}
 
       - name: Vulnerability Scanning
         run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/root/ aquasec/trivy:latest image sidwar/myapp:${{ github.sha }} > trivy-report.json
