@@ -101,7 +101,7 @@ jobs:
   optimize_image:
     name: Optimize Docker Image
     runs-on: ubuntu-latest
-    needs: push_to_registry
+    needs: Vulnerability Scanning
 
     steps:
       - name: Checkout code
