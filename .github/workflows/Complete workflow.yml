@@ -109,10 +109,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        
+      - name: Debug
+        run : docker images
 
       - name: Optimize Docker image
         run: |
-          docker pull sidwar/myapp:latest
+          docker pull sidwar/myapp:${{ github.sha }}
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock dslim/docker-slim build --http-probe=false sidwar/myapp:${{ github.sha }}
 
       - name: Log in to DockerHub
