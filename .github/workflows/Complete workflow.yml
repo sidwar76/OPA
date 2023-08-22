@@ -116,7 +116,7 @@ jobs:
       - name: Optimize Docker image
         run: |
           docker pull sidwar/myapp:${{ github.sha }}
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock dslim/docker-slim build --http-probe=false sidwar/myapp:${{ github.sha }}
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock dslim/docker-slim build --http-probe=false --report=/github/workspace/slim.report.json sidwar/myapp:${{ github.sha }}
 
       - name: Find Optimization Report
         run: find . -name 'slim.report.json'
